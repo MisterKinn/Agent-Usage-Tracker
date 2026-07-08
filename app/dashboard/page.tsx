@@ -17,8 +17,6 @@ import Link from "next/link";
 import {
     Activity,
     BarChart3,
-    Check,
-    Copy,
     LogOut,
     Radio,
     Sparkles,
@@ -29,60 +27,13 @@ import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
 import {
     activeTokenCount,
     formatNumber,
-    summarizeByAgent,
     summarizeByOwner,
     toDate,
     type UsageSummary,
 } from "@/lib/usage";
 import styles from "./trend-chart.module.css";
 
-const PRODUCTION_URL = "https://agent-usage-tracker.vercel.app";
 const TREND_COLORS = ["#2f7df6", "#ff9f0a", "#7dd3fc", "#8fd7a7", "#f472b6"];
-
-type OsKind = "windows" | "macos" | "unknown";
-
-function detectOs(): OsKind {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const platform = navigator.platform.toLowerCase();
-
-    if (userAgent.includes("windows") || platform.includes("win")) {
-        return "windows";
-    }
-    if (
-        userAgent.includes("mac os") ||
-        userAgent.includes("macintosh") ||
-        platform.includes("mac")
-    ) {
-        return "macos";
-    }
-    return "unknown";
-}
-
-function installCommand(os: OsKind) {
-    if (os === "windows") {
-        return `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm '${PRODUCTION_URL}/api/install/windows')))"`;
-    }
-
-    return `/usr/bin/curl -fsSL '${PRODUCTION_URL}/api/install/python' | python3`;
-}
-
-function rerunCommand(os: OsKind) {
-    if (os === "windows") {
-        return "cd .agent-usage-tracker && py -3 track_agent_usage.py";
-    }
-
-    return 'cd ".agent-usage-tracker" && python3 track_agent_usage.py';
-}
-
-function osLabel(os: OsKind) {
-    if (os === "windows") {
-        return "Windows";
-    }
-    if (os === "macos") {
-        return "macOS";
-    }
-    return "Python";
-}
 
 function formatDateKey(dateKey: string) {
     if (!dateKey || !dateKey.includes("-")) {
@@ -120,12 +71,6 @@ export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
-    const [os, setOs] = useState<OsKind>("unknown");
-    const [copiedCommand, setCopiedCommand] = useState<"install" | "rerun" | null>(null);
-
-    useEffect(() => {
-        setOs(detectOs());
-    }, []);
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -157,7 +102,6 @@ export default function DashboardPage() {
     }, [user]);
 
     const summary = summarizeByOwner(summaries);
-    const agentSummary = summarizeByAgent(summaries);
     const totalTokens = summaries.reduce(
         (sum, item) => sum + activeTokenCount(item),
         0,
@@ -169,10 +113,9 @@ export default function DashboardPage() {
     const totalSessions = summaries.reduce((sum, item) => sum + item.sessions, 0);
     const totalEvents = summaries.reduce((sum, item) => sum + item.events, 0);
     const lastEventDate = toDate(summaries[0]?.lastCompletedAt ?? null);
-    const install = installCommand(os);
-    const rerun = rerunCommand(os);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
+    const trackedUsers = summary.length;
     const dateKeys = Array.from(
         new Set(summaries.map((item) => item.dateKey).filter(Boolean)),
     )
@@ -237,15 +180,6 @@ export default function DashboardPage() {
         value: Math.round(trendMaxTokens * ratio),
         y: chartPaddingTop + plotHeight - plotHeight * ratio,
     }));
-
-    async function copyCommand(kind: "install" | "rerun") {
-        const value = kind === "install" ? install : rerun;
-        await navigator.clipboard.writeText(value);
-        setCopiedCommand(kind);
-        window.setTimeout(() => {
-            setCopiedCommand((current) => (current === kind ? null : current));
-        }, 1600);
-    }
 
     if (!hasFirebaseConfig()) {
         return (
@@ -336,39 +270,6 @@ export default function DashboardPage() {
                 </div>
             </section>
 
-            <section className="command-banner dashboard-command">
-                <div className="command-stack">
-                    <div className="command-group">
-                        <p className="eyebrow">Install watcher · {osLabel(os)}</p>
-                        <code>{install}</code>
-                    </div>
-                    <div className="command-group">
-                        <p className="eyebrow">Run again</p>
-                        <code>{rerun}</code>
-                    </div>
-                </div>
-                <div className="command-actions">
-                    <button
-                        className={`icon-button copy-feedback${copiedCommand === "install" ? " is-copied" : ""}`}
-                        type="button"
-                        aria-label="설치 명령 복사"
-                        title="설치 명령 복사"
-                        onClick={() => copyCommand("install")}
-                    >
-                        {copiedCommand === "install" ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                    <button
-                        className={`icon-button copy-feedback${copiedCommand === "rerun" ? " is-copied" : ""}`}
-                        type="button"
-                        aria-label="다시 실행 명령 복사"
-                        title="다시 실행 명령 복사"
-                        onClick={() => copyCommand("rerun")}
-                    >
-                        {copiedCommand === "rerun" ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                </div>
-            </section>
-
             <section className="summary-grid">
                 <article className="metric">
                     <span>active tokens</span>
@@ -376,15 +277,12 @@ export default function DashboardPage() {
                     <small>cached 제외 · raw {formatNumber(rawTotalTokens)}</small>
                 </article>
                 <article className="metric">
-                    <span>agents</span>
-                    <strong>{formatNumber(agentSummary.length)}</strong>
+                    <span>tracked users</span>
+                    <strong>{formatNumber(trackedUsers)}</strong>
                     <small>
-                        {agentSummary
-                            .map(
-                                (item) =>
-                                    `${item.agent} ${formatNumber(item.totalTokens)}`,
-                            )
-                            .join(" · ") || "아직 없음"}
+                        {topOwner
+                            ? `top user ${topOwner.ownerName} · ${formatNumber(topOwner.totalTokens)}`
+                            : "아직 없음"}
                     </small>
                 </article>
                 <article className="metric">
