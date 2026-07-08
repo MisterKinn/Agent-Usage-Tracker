@@ -44,7 +44,7 @@ Next.js 앱, Firebase 연결 코드, Firestore 실시간 대시보드, 로컬 Co
 - [x] 원격 설치용 `/api/install` 라우트
 - [x] Windows용 Python 원격 설치 라우트
 - [x] Python 표준 라이브러리 기반 최소 로컬 워처
-- [ ] Firebase 프로젝트 생성 및 `.env.local` 연결
+- [ ] Firebase 프로젝트 생성 및 웹 환경변수 연결
 - [ ] GitHub 레포 생성
 - [ ] Vercel 프로젝트 연결
 
@@ -66,9 +66,10 @@ macOS 터미널에서는 아래 한 줄을 실행합니다.
 
 설치되는 것:
 - `.agent-usage-tracker/track_agent_usage.py`
-- `.agent-usage-tracker/.env.local`
+- `.agent-usage-tracker/.tracker-config.json` (첫 실행 후 이름 저장)
+- `.agent-usage-tracker/.tracker-state.json` (동기화 상태 저장)
 
-첫 실행 때 터미널에서 이름을 물어보고 `.agent-usage-tracker/.tracker-config.json`에 저장합니다.
+첫 실행 때 터미널에서 이름을 물어보고 `.agent-usage-tracker/.tracker-config.json`에 저장합니다. Firebase 공개 Web App 설정은 설치 시 트래커 코드 안에 함께 주입되므로, 팀원 로컬 프로젝트에 별도 `.env` 파일을 만들지 않습니다.
 
 이후 같은 프로젝트에서는 아래 명령으로 다시 시작할 수 있습니다. Python 실행 명령은 PC마다 `py`, `python`, `python3` 중 하나입니다.
 
@@ -172,7 +173,7 @@ npm run track -- --name "김성연" --agent claude
 
 - Authentication: Email/Password, Google, Anonymous provider
 - Firestore Database: production mode로 생성 후 `firestore.rules` 참고
-- Project settings > Web app: `.env.local`에 넣을 Web App config 확인
+- Project settings > Web app: 웹 앱과 설치 트래커가 공통으로 쓸 Firebase Web App config 확인
 
 `.env.local`은 Git에 올리지 않습니다.
 
@@ -191,6 +192,6 @@ npm run track -- --name "김성연" --agent claude
 
 ## 메모
 
-- Firebase Web App config는 클라이언트 앱 식별용 값이지만, 실제 값은 `.env.local`에만 둔다.
+- Firebase Web App config는 공개 클라이언트 설정이며, 웹 앱은 Vercel 환경변수에서 읽고 설치 트래커는 설치 시 코드 안으로 주입한다.
 - 현재 Firestore rules는 인증된 사용자끼리 읽고 쓰는 MVP 초안이다. 팀 외부 사용자를 막으려면 allowlist 규칙을 추가해야 한다.
 - 기존 Python CSV 리포트 도구는 `src/*.py`에 남겨 두었다. 웹/실시간 기본 흐름은 `scripts/track-agent-usage.mjs`와 Next.js 앱이다.

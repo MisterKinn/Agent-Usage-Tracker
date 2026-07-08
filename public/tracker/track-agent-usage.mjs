@@ -25,6 +25,7 @@ import {
 dotenv.config({ path: [".env.local", ".env"] });
 
 const THREAD_RE = /thread(?:\.id|_id)=([0-9a-f-]{36})/;
+const EMBEDDED_FIREBASE_CONFIG = "__AGENT_TRACKER_FIREBASE_CONFIG__";
 const DEFAULT_CODEX_DB = `${homedir()}/.codex/logs_2.sqlite`;
 const DEFAULT_CODEX_SESSION_INDEX = `${homedir()}/.codex/session_index.jsonl`;
 const DEFAULT_CLAUDE_PROJECTS_DIR = `${homedir()}/.claude/projects`;
@@ -158,6 +159,20 @@ async function resolveOwnerName(args) {
 }
 
 function firebaseConfig() {
+  if (
+    EMBEDDED_FIREBASE_CONFIG &&
+    typeof EMBEDDED_FIREBASE_CONFIG === "object" &&
+    !Array.isArray(EMBEDDED_FIREBASE_CONFIG)
+  ) {
+    const missing = Object.entries(EMBEDDED_FIREBASE_CONFIG)
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+
+    if (!missing.length) {
+      return EMBEDDED_FIREBASE_CONFIG;
+    }
+  }
+
   const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

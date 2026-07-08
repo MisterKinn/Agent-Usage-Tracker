@@ -64,7 +64,7 @@ export default function GuidePage() {
                 <p className="eyebrow">Guide</p>
                 <h1>설명서</h1>
                 <p>
-                    VSC 터미널에서 첫 설치 명령어 입력 이후 재실행 명령어만
+                    VSCode 터미널에서 첫 설치 명령어 입력 이후 재실행 명령어만
                     입력하면 됩니다.
                 </p>
             </section>
@@ -76,7 +76,7 @@ export default function GuidePage() {
                     <p>
                         {osLabel} 기준 설치 명령어입니다.
                         <br />이 명령어를 실행하면 로컬 프로젝트에 트래커 코드가
-                        설치됩니다.
+                        설치되며 별도 `.env` 파일은 만들지 않습니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{installCommand}</code>
@@ -99,7 +99,7 @@ export default function GuidePage() {
                     <RotateCcw size={22} />
                     <h2>다시 실행</h2>
                     <p>
-                        이후에는 설치를 다시 할 필요 없이 아래 명령어로 워처만
+                        이후에는 재설치할 필요 없이 아래 명령어로 트래커만
                         재시작하면 됩니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
@@ -126,18 +126,16 @@ export default function GuidePage() {
                     <h2>사용 순서</h2>
                     <p>1. 작업 중인 프로젝트에서 VSCode 터미널을 엽니다.</p>
                     <p>2. 위 설치 명령어를 한 번 실행하고 이름을 입력합니다.</p>
-                    <p>3. 다음부터는 재실행 명령어만 입력해 워처를 켭니다.</p>
+                    <p>3. 다음부터는 재실행 명령어만 입력해 트래커를 켭니다.</p>
                 </article>
                 <article className="feature-card">
                     <ArrowRight size={22} />
                     <h2>확인 방법</h2>
                     <p>
-                        워처가 실행되면 Codex와 Claude Code 로그를 읽어서
-                        Firebase에 일자 집계를 올립니다.
-                    </p>
-                    <p>
-                        그 다음 대시보드에서 사용자별 active token 흐름과 순위를
-                        확인하면 됩니다.
+                        트래커가 실행되면 AI 에이전트가 로컬에 남긴 로그 파일을
+                        읽고
+                        <br />
+                        1시간 간격으로 대시보드가 업데이트됩니다.
                     </p>
                     <div className="page-actions">
                         <Link className="button" href="/dashboard">

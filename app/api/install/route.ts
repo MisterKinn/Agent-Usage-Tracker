@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { renderTrackerAsset } from "@/lib/tracker-installer";
 
 async function absoluteBaseUrl(requestUrl: string) {
   const headerStore = await headers();
@@ -16,19 +17,18 @@ async function absoluteBaseUrl(requestUrl: string) {
 
 export async function GET(request: Request) {
   const baseUrl = await absoluteBaseUrl(request.url);
+  const trackerSource = await renderTrackerAsset("track-agent-usage.mjs");
   const installer = `#!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 
 const BASE_URL = ${JSON.stringify(baseUrl)};
 const INSTALL_DIR = resolve(process.cwd(), ".agent-usage-tracker");
+const TRACKER_SOURCE = ${JSON.stringify(trackerSource)};
 const FILES = [
   ["/tracker/package.json", "package.json"],
-  ["/tracker/track-agent-usage.mjs", "track-agent-usage.mjs"],
-  ["/api/tracker-env", ".env.local"],
 ];
 
 function fail(message) {
@@ -77,9 +77,11 @@ for (const [remotePath, localPath] of FILES) {
   writeFileSync(targetPath, await download(remotePath), "utf8");
 }
 
+writeFileSync(join(INSTALL_DIR, "track-agent-usage.mjs"), TRACKER_SOURCE, "utf8");
+
 writeFileSync(
   join(INSTALL_DIR, ".gitignore"),
-  ["node_modules", ".env.local", ".tracker-config.json", ".tracker-state.json", ""].join("\\n"),
+  ["node_modules", ".tracker-config.json", ".tracker-state.json", ""].join("\\n"),
   "utf8",
 );
 

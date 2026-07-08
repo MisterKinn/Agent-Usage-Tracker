@@ -18,6 +18,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,8 +27,11 @@ from typing import Any
 THREAD_RE = re.compile(r"thread(?:\.id|_id)=([0-9a-f-]{36})")
 ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 ROOT = Path.cwd()
-CONFIG_PATH = ROOT / ".tracker-config.json"
+GLOBAL_CONFIG_DIR = Path.home() / ".agent-usage-tracker"
+CONFIG_PATH = GLOBAL_CONFIG_DIR / "profile.json"
+LEGACY_CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
+EMBEDDED_FIREBASE_CONFIG = "__AGENT_TRACKER_FIREBASE_CONFIG__"
 ENV_PATHS = [ROOT / ".env.local", ROOT / ".env"]
 ANSI = {
     "reset": "\033[0m",
@@ -132,6 +136,7 @@ def read_json(path: Path, fallback: dict[str, Any]) -> dict[str, Any]:
 
 
 def write_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
     tmp_path.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp_path.replace(path)
@@ -152,32 +157,58 @@ def prompt_owner_name() -> str:
     raise RuntimeError('Owner name is required. Run again with --name "이름".')
 
 
-def resolve_owner_name(args: argparse.Namespace) -> str:
+def load_owner_profile() -> dict[str, Any]:
     config = read_json(CONFIG_PATH, {})
+    if config:
+        return config
+
+    legacy = read_json(LEGACY_CONFIG_PATH, {})
+    if legacy:
+        if not str(legacy.get("ownerId", "")).strip():
+            legacy["ownerId"] = f"owner-{uuid.uuid4().hex}"
+        write_json(CONFIG_PATH, legacy)
+        return legacy
+
+    return {}
+
+
+def resolve_owner_profile(args: argparse.Namespace) -> dict[str, str]:
+    config = load_owner_profile()
+    owner_id = str(config.get("ownerId") or f"owner-{uuid.uuid4().hex}").strip()
+
     if args.name:
         config["ownerName"] = args.name
+        config["ownerId"] = owner_id
         config["updatedAt"] = now_iso()
         write_json(CONFIG_PATH, config)
         emit(f"saved owner name: {args.name}", "ok")
-        return args.name
+        return {"ownerName": args.name, "ownerId": owner_id}
 
     saved_name = str(config.get("ownerName", "")).strip()
     if saved_name:
-        return saved_name
+        if str(config.get("ownerId", "")).strip() != owner_id:
+            config["ownerId"] = owner_id
+            write_json(CONFIG_PATH, config)
+        return {"ownerName": saved_name, "ownerId": owner_id}
 
     env_name = os.environ.get("AGENT_TRACKER_NAME", "").strip()
     if env_name:
-        return env_name
+        config["ownerName"] = env_name
+        config["ownerId"] = owner_id
+        config["updatedAt"] = now_iso()
+        write_json(CONFIG_PATH, config)
+        return {"ownerName": env_name, "ownerId": owner_id}
 
     answer = prompt_owner_name()
     if not answer:
         raise RuntimeError("Owner name is required.")
 
     config["ownerName"] = answer
+    config["ownerId"] = owner_id
     config["updatedAt"] = now_iso()
     write_json(CONFIG_PATH, config)
     emit(f"saved owner name: {answer}", "ok")
-    return answer
+    return {"ownerName": answer, "ownerId": owner_id}
 
 
 def read_env() -> dict[str, str]:
@@ -196,6 +227,11 @@ def read_env() -> dict[str, str]:
 
 
 def firebase_config() -> dict[str, str]:
+    if isinstance(EMBEDDED_FIREBASE_CONFIG, dict):
+        config = {key: str(value) for key, value in EMBEDDED_FIREBASE_CONFIG.items()}
+        missing = [key for key, value in config.items() if not value]
+        if not missing:
+            return config
     env = read_env()
     required = {
         "apiKey": "NEXT_PUBLIC_FIREBASE_API_KEY",
@@ -317,6 +353,7 @@ def parse_codex_events(args: argparse.Namespace) -> list[dict[str, Any]]:
                 "eventId": f"codex:{response['id']}",
                 "agent": "codex",
                 "ownerName": args.name,
+                "ownerId": args.owner_id,
                 "sessionId": session_id,
                 "sessionName": session_names.get(session_id, ""),
                 "responseId": str(response["id"]),
@@ -373,6 +410,7 @@ def parse_claude_events(args: argparse.Namespace) -> list[dict[str, Any]]:
                     "eventId": f"claude:{session_id}:{message['id']}",
                     "agent": "claude",
                     "ownerName": args.name,
+                    "ownerId": args.owner_id,
                     "sessionId": session_id,
                     "sessionName": str(item.get("cwd") or ""),
                     "responseId": str(message["id"]),
@@ -414,8 +452,9 @@ def summarize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for event in events:
         date_key = str(event["completedAt"])[:10]
         owner_name = str(event.get("ownerName") or "unassigned")
+        owner_id = str(event.get("ownerId") or slug_fragment(owner_name))
         agent = str(event.get("agent") or "unknown")
-        summary_id = f"{date_key}:{agent}:{slug_fragment(owner_name)}"
+        summary_id = f"{date_key}:{agent}:{owner_id}"
 
         item = grouped.get(summary_id)
         if item is None:
@@ -423,6 +462,7 @@ def summarize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "summaryId": summary_id,
                 "dateKey": date_key,
                 "ownerName": owner_name,
+                "ownerId": owner_id,
                 "agent": agent,
                 "events": 0,
                 "sessions": set(),
@@ -457,6 +497,7 @@ def summarize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "summaryId": item["summaryId"],
                 "dateKey": item["dateKey"],
                 "ownerName": item["ownerName"],
+                "ownerId": item["ownerId"],
                 "agent": item["agent"],
                 "events": item["events"],
                 "sessions": len(item["sessions"]),
@@ -663,7 +704,9 @@ def explain_error(error: Exception) -> str:
 
 def main() -> int:
     args = read_args()
-    args.name = resolve_owner_name(args)
+    owner_profile = resolve_owner_profile(args)
+    args.name = owner_profile["ownerName"]
+    args.owner_id = owner_profile["ownerId"]
     emit_banner(args)
     state = read_json(STATE_PATH, {"uploadedEventIds": []})
 
@@ -680,6 +723,7 @@ def main() -> int:
         auth_user["uid"],
         {
             "ownerName": args.name,
+            "ownerId": args.owner_id,
             "agent": args.agent,
             "lastSeenAt": now_iso(),
             "source": "local-agent-log-python",
