@@ -1,0 +1,14 @@
+{
+  "name": "agent-usage-tracker-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "track": "node track-agent-usage.mjs",
+    "track:once": "node track-agent-usage.mjs --once"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "firebase": "^12.6.0"
+  }
+}

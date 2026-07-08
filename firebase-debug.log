@@ -1,0 +1,100 @@
+[debug] [2026-07-08T07:57:15.775Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T07:57:15.776Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only firestore:rules --project 
+[debug] [2026-07-08T07:57:15.776Z] CLI Version:   15.11.0
+[debug] [2026-07-08T07:57:15.776Z] Platform:      darwin
+[debug] [2026-07-08T07:57:15.776Z] Node Version:  v20.19.6
+[debug] [2026-07-08T07:57:15.776Z] Time:          Wed Jul 08 2026 16:57:15 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T07:57:15.776Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T07:57:15.777Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[error] 
+[error] Error: No currently active project.
+To run this command, you need to specify a project. You have two options:
+- Run this command with --project <alias_or_project_id>.
+- Set an active project by running firebase use --add, then rerun this command.
+To list all the Firebase projects to which you have access, run firebase projects:list.
+To learn about active projects for the CLI, visit https://firebase.google.com/docs/cli#project_aliases
+
+
+[debug] [2026-07-08T07:57:17.177Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-07-08T07:57:17.178Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-07-08T07:57:30.320Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T07:57:30.321Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only firestore:rules --project agent-usage-tracker
+[debug] [2026-07-08T07:57:30.321Z] CLI Version:   15.11.0
+[debug] [2026-07-08T07:57:30.321Z] Platform:      darwin
+[debug] [2026-07-08T07:57:30.321Z] Node Version:  v20.19.6
+[debug] [2026-07-08T07:57:30.321Z] Time:          Wed Jul 08 2026 16:57:30 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T07:57:30.321Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T07:57:30.990Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T07:57:30.991Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T07:57:30.991Z] [iam] checking project agent-usage-tracker for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-07-08T07:57:30.991Z] Checked if tokens are valid: false, expires at: 1782791211060
+[debug] [2026-07-08T07:57:30.992Z] Checked if tokens are valid: false, expires at: 1782791211060
+[debug] [2026-07-08T07:57:30.992Z] > refreshing access token with scopes: []
+[debug] [2026-07-08T07:57:30.993Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-08T07:57:30.993Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-08T07:57:31.311Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-07-08T07:57:31.311Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-08T07:57:31.323Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T07:57:31.323Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T07:57:31.323Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-07-08T07:57:31.693Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T07:57:31.693Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'agent-usage-tracker'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-07-08T07:57:31.695Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:31.695Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:31.695Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/agent-usage-tracker/services/firestore.googleapis.com [none]
+[debug] [2026-07-08T07:57:31.695Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/agent-usage-tracker/services/firestore.googleapis.com  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T07:57:32.966Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/agent-usage-tracker/services/firestore.googleapis.com 200
+[debug] [2026-07-08T07:57:32.966Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/agent-usage-tracker/services/firestore.googleapis.com [omitted]
+[info] ✔  firestore: required API firestore.googleapis.com is enabled 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-07-08T07:57:32.974Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:32.975Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:32.975Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) [none]
+[debug] [2026-07-08T07:57:33.297Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) 200
+[debug] [2026-07-08T07:57:33.297Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) {"name":"projects/agent-usage-tracker/databases/(default)","uid":"855c9cd0-da73-4310-ac97-694ecbf4e91f","createTime":"2026-07-08T07:39:28.446587Z","updateTime":"2026-07-08T07:39:28.446587Z","locationId":"asia-northeast3","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-07-08T07:39:28.446587Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"v","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"ILOhqOHNwpUDMInSrN7JwpUD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-07-08T07:57:33.298Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:33.299Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:33.299Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test [none]
+[debug] [2026-07-08T07:57:33.299Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test [omitted]
+[debug] [2026-07-08T07:57:34.660Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test 200
+[debug] [2026-07-08T07:57:34.660Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test {}
+[info] ✔  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-07-08T07:57:34.661Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:34.661Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:34.661Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases pageSize=10&pageToken=
+[debug] [2026-07-08T07:57:35.925Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases 200
+[debug] [2026-07-08T07:57:35.925Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases {"releases":[{"name":"projects/agent-usage-tracker/releases/cloud.firestore","rulesetName":"projects/agent-usage-tracker/rulesets/68606117-f591-4a41-a0bf-db3467d5b85c","createTime":"2026-07-08T07:39:31.485289Z","updateTime":"2026-07-08T07:39:31.485289Z"}]}
+[debug] [2026-07-08T07:57:35.926Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:35.926Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:35.926Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/68606117-f591-4a41-a0bf-db3467d5b85c [none]
+[debug] [2026-07-08T07:57:36.216Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/68606117-f591-4a41-a0bf-db3467d5b85c 200
+[debug] [2026-07-08T07:57:36.216Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/68606117-f591-4a41-a0bf-db3467d5b85c [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-07-08T07:57:36.217Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:36.217Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:36.217Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets [none]
+[debug] [2026-07-08T07:57:36.217Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets [omitted]
+[debug] [2026-07-08T07:57:37.410Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets 200
+[debug] [2026-07-08T07:57:37.410Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets {"name":"projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function signedIn() {\n      return request.auth != null;\n    }\n\n    function writesOwnAuthUid() {\n      return signedIn()\n        && request.resource.data.authUid is string\n        && request.resource.data.authUid == request.auth.uid;\n    }\n\n    match /usageEvents/{eventId} {\n      allow read: if signedIn();\n      allow create, update: if writesOwnAuthUid();\n    }\n\n    match /trackerClients/{clientId} {\n      allow read: if signedIn();\n      allow create, update: if signedIn() && clientId == request.auth.uid;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-07-08T07:57:37.300623Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-07-08T07:57:37.410Z] [rules] created ruleset projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c
+[debug] [2026-07-08T07:57:37.411Z] [rules] releasing cloud.firestore/(default) with ruleset projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c
+[debug] [2026-07-08T07:57:37.411Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:37.411Z] Checked if tokens are valid: true, expires at: 1783501050311
+[debug] [2026-07-08T07:57:37.411Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) [none]
+[debug] [2026-07-08T07:57:37.412Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) {"release":{"name":"projects/agent-usage-tracker/releases/cloud.firestore/(default)","rulesetName":"projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c"}}
+[debug] [2026-07-08T07:57:38.605Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) 200
+[debug] [2026-07-08T07:57:38.605Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) {"name":"projects/agent-usage-tracker/releases/cloud.firestore","rulesetName":"projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c","createTime":"2026-07-08T07:39:31.485289Z","updateTime":"2026-07-08T07:57:38.516747Z"}
+[debug] [2026-07-08T07:57:38.605Z] [rules] updated release projects/agent-usage-tracker/releases/cloud.firestore
+[info] ✔  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] ✔  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/agent-usage-tracker/overview

@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function writesOwnAuthUid() {
+      return signedIn()
+        && request.resource.data.authUid is string
+        && request.resource.data.authUid == request.auth.uid;
+    }
+
+    match /usageEvents/{eventId} {
+      allow read: if signedIn();
+      allow create, update: if writesOwnAuthUid();
+    }
+
+    match /trackerClients/{clientId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && clientId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+.env
+.env.local
+.env.*.local
+.tracker-config.json
+.tracker-state.json
+input/current_user.json
+output/*.csv
+output/*.md
+src/__pycache__
+*.pyc
