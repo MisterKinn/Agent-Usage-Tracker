@@ -30,6 +30,29 @@ import {
 import styles from "./trend-chart.module.css";
 
 const TREND_COLORS = ["#2f7df6", "#ff9f0a", "#7dd3fc", "#8fd7a7", "#f472b6"];
+const DASHBOARD_TIMEZONE = "Asia/Seoul";
+
+function dashboardDateKey(date: Date) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: DASHBOARD_TIMEZONE,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(date);
+    const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+    const month = parts.find((part) => part.type === "month")?.value ?? "01";
+    const day = parts.find((part) => part.type === "day")?.value ?? "01";
+
+    return `${year}-${month}-${day}`;
+}
+
+function recentDateKeys(days: number) {
+    return Array.from({ length: days }, (_, index) => {
+        const offset = days - 1 - index;
+        const date = new Date(Date.now() - offset * 24 * 60 * 60 * 1000);
+        return dashboardDateKey(date);
+    });
+}
 
 function formatDateKey(dateKey: string) {
     if (!dateKey || !dateKey.includes("-")) {
@@ -117,11 +140,7 @@ export default function DashboardPage() {
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
     const trackedUsers = summary.length;
-    const dateKeys = Array.from(
-        new Set(summaries.map((item) => item.dateKey).filter(Boolean)),
-    )
-        .sort()
-        .slice(-7);
+    const dateKeys = recentDateKeys(7);
     const trendOwners = summary.slice(0, 5);
     const trendMatrix = new Map<string, number>();
 
