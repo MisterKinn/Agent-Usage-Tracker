@@ -17,15 +17,18 @@ async function absoluteBaseUrl(requestUrl: string) {
 
 export async function GET(request: Request) {
   const baseUrl = await absoluteBaseUrl(request.url);
-  const trackerSource = await renderTrackerAsset("track-agent-usage.mjs");
+  const trackerSource = await renderTrackerAsset("track-agent-usage.mjs", {
+    baseUrl,
+  });
   const installer = `#!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
+import { homedir } from "node:os";
 import process from "node:process";
 
 const BASE_URL = ${JSON.stringify(baseUrl)};
-const INSTALL_DIR = resolve(process.cwd(), ".agent-usage-tracker");
+const INSTALL_DIR = join(homedir(), ".agent-usage-tracker");
 const TRACKER_SOURCE = ${JSON.stringify(trackerSource)};
 const FILES = [
   ["/tracker/package.json", "package.json"],
@@ -93,7 +96,7 @@ if (!existsSync(join(INSTALL_DIR, "node_modules"))) {
 }
 
 if (installOnly) {
-  console.log("[agent-usage-tracker] install complete. Start with: npm --prefix .agent-usage-tracker run track");
+  console.log("[agent-usage-tracker] install complete. Start with: cd \\"" + INSTALL_DIR + "\\" && npm run track");
   process.exit(0);
 }
 

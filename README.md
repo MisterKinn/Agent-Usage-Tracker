@@ -104,7 +104,12 @@ Firebase 설정 파일 만들기:
 cp .env.example .env.local
 ```
 
-`.env.local`에 Firebase Web App 설정값을 채운 뒤 웹을 실행합니다.
+`.env.local`에 아래 값을 채운 뒤 웹을 실행합니다.
+
+- Firebase Web App 공개 설정
+- Firebase Admin SDK 서비스 계정 값
+- `TRACKER_WRITE_TOKEN`
+- 로컬 개발용 `AGENT_TRACKER_UPLOAD_URL`
 
 ```bash
 npm run dev
@@ -161,7 +166,7 @@ npm run track -- --name "김성연" --agent claude
 
 - Firebase 설정 전에는 웹에서 설정 안내 화면이 보인다.
 - Firebase 설정 후 로그인 화면이 보이고 Auth 로그인이 된다.
-- 워처 실행 후 Firestore `usageEvents` 문서에 `agent: "codex"` 또는 `agent: "claude"`가 저장된다.
+- 워처 실행 후 서버 API가 Firestore `usageDailySummaries`와 `trackerClients`를 갱신한다.
 - 웹 대시보드의 총 토큰, 사용자 순위, 최근 이벤트가 실시간으로 갱신된다.
 - 배포 전 `npm run build`가 통과한다.
 
@@ -175,13 +180,13 @@ npm run track -- --name "김성연" --agent claude
 - Firestore Database: production mode로 생성 후 `firestore.rules` 참고
 - Project settings > Web app: 웹 앱과 설치 트래커가 공통으로 쓸 Firebase Web App config 확인
 
-`.env.local`은 Git에 올리지 않습니다.
+`.env.local`은 Git에 올리지 않습니다. 특히 `FIREBASE_ADMIN_PRIVATE_KEY`, `TRACKER_WRITE_TOKEN`은 절대 공개 레포에 올리면 안 됩니다.
 
 ## 배포 흐름
 
 1. GitHub에 새 레포를 만들고 이 폴더를 루트로 push한다.
 2. Vercel에서 GitHub 레포를 import한다.
-3. Vercel Environment Variables에 `.env.local`과 같은 Firebase 값을 등록한다.
+3. Vercel Environment Variables에 Web App 값과 함께 `FIREBASE_ADMIN_*`, `TRACKER_WRITE_TOKEN`을 등록한다.
 4. Vercel 기본 도메인으로 접속해 로그인과 실시간 대시보드를 확인한다.
 
 ## Codex에게 다음에 요청할 말
@@ -192,6 +197,6 @@ npm run track -- --name "김성연" --agent claude
 
 ## 메모
 
-- Firebase Web App config는 공개 클라이언트 설정이며, 웹 앱은 Vercel 환경변수에서 읽고 설치 트래커는 설치 시 코드 안으로 주입한다.
+- 웹 앱 로그인은 Firebase Auth를 쓰지만, 로컬 트래커 업로드는 Vercel API가 Firebase Admin SDK로 대신 기록한다. 그래서 트래커 실행 시 Firebase `(anonymous)` 유저가 새로 생기지 않는다.
 - 현재 Firestore rules는 인증된 사용자끼리 읽고 쓰는 MVP 초안이다. 팀 외부 사용자를 막으려면 allowlist 규칙을 추가해야 한다.
 - 기존 Python CSV 리포트 도구는 `src/*.py`에 남겨 두었다. 웹/실시간 기본 흐름은 `scripts/track-agent-usage.mjs`와 Next.js 앱이다.

@@ -18,29 +18,46 @@ service cloud.firestore {
         && request.resource.data.authUid == request.auth.uid;
     }
 
+    function ownsAuthUid(resourceData) {
+      return signedIn()
+        && resourceData.authUid is string
+        && resourceData.authUid == request.auth.uid;
+    }
+
     match /usageEvents/{eventId} {
       allow read: if signedIn();
-      allow create, update: if writesOwnAuthUid();
+      allow create, update: if false;
+      allow delete: if isAdmin();
     }
 
     match /usageDailySummaries/{summaryId} {
       allow read: if signedIn();
-      allow create, update: if writesOwnAuthUid();
+      allow create, update: if false;
+      allow delete: if isAdmin();
     }
 
     match /trackerClients/{clientId} {
       allow read: if signedIn();
-      allow create, update: if signedIn() && clientId == request.auth.uid;
+      allow create, update: if false;
+      allow delete: if isAdmin();
     }
 
     match /contactMessages/{messageId} {
       allow create: if writesOwnAuthUid();
-      allow read, update: if isAdmin();
+      allow read: if isAdmin() || ownsAuthUid(resource.data);
+      allow update, delete: if isAdmin();
     }
 
     match /visitorInsights/{insightId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || ownsAuthUid(resource.data);
       allow create, update: if writesOwnAuthUid();
+      allow delete: if isAdmin();
+    }
+
+    match /userProfiles/{profileId} {
+      allow read: if isAdmin() || (signedIn() && profileId == request.auth.uid);
+      allow create, update: if writesOwnAuthUid() && profileId == request.auth.uid;
+      allow delete: if isAdmin();
     }
   }
 }

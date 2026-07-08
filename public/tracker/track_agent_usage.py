@@ -16,7 +16,6 @@ import subprocess
 import sys
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 import uuid
 from datetime import datetime, timezone
@@ -26,13 +25,14 @@ from typing import Any
 
 THREAD_RE = re.compile(r"thread(?:\.id|_id)=([0-9a-f-]{36})")
 ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
-ROOT = Path.cwd()
+RUN_CONTEXT = Path.cwd()
+ROOT = Path(__file__).resolve().parent
 GLOBAL_CONFIG_DIR = Path.home() / ".agent-usage-tracker"
 CONFIG_PATH = GLOBAL_CONFIG_DIR / "profile.json"
 LEGACY_CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
-EMBEDDED_FIREBASE_CONFIG = "__AGENT_TRACKER_FIREBASE_CONFIG__"
-ENV_PATHS = [ROOT / ".env.local", ROOT / ".env"]
+TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__"
+TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__"
 ANSI = {
     "reset": "\033[0m",
     "dim": "\033[2m",
@@ -80,7 +80,8 @@ def emit_banner(args: argparse.Namespace) -> None:
     line = paint("=" * 60, "dim")
     print(line)
     print(paint("Agent Usage Tracker", "bold", "cyan"))
-    print(f"{paint('project', 'dim'):<16}{ROOT}")
+    print(f"{paint('workspace', 'dim'):<16}{RUN_CONTEXT}")
+    print(f"{paint('tracker', 'dim'):<16}{ROOT}")
     print(f"{paint('owner', 'dim'):<16}{args.name}")
     print(f"{paint('agent', 'dim'):<16}{args.agent}")
     print(f"{paint('scan', 'dim'):<16}{args.interval_seconds}s")
@@ -209,43 +210,6 @@ def resolve_owner_profile(args: argparse.Namespace) -> dict[str, str]:
     write_json(CONFIG_PATH, config)
     emit(f"saved owner name: {answer}", "ok")
     return {"ownerName": answer, "ownerId": owner_id}
-
-
-def read_env() -> dict[str, str]:
-    values: dict[str, str] = {}
-    for path in ENV_PATHS:
-        if not path.exists():
-            continue
-        for raw_line in path.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            value = value.strip().strip('"').strip("'")
-            values[key.strip()] = value
-    return values
-
-
-def firebase_config() -> dict[str, str]:
-    if isinstance(EMBEDDED_FIREBASE_CONFIG, dict):
-        config = {key: str(value) for key, value in EMBEDDED_FIREBASE_CONFIG.items()}
-        missing = [key for key, value in config.items() if not value]
-        if not missing:
-            return config
-    env = read_env()
-    required = {
-        "apiKey": "NEXT_PUBLIC_FIREBASE_API_KEY",
-        "authDomain": "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-        "projectId": "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-        "storageBucket": "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
-        "messagingSenderId": "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
-        "appId": "NEXT_PUBLIC_FIREBASE_APP_ID",
-    }
-    config = {name: env.get(key, "") for name, key in required.items()}
-    missing = [key for name, key in required.items() if not config[name]]
-    if missing:
-        raise RuntimeError(f"Missing Firebase env values: {', '.join(missing)}")
-    return config
 
 
 def now_iso() -> str:
@@ -580,44 +544,7 @@ def describe_api_error(error: Any) -> str:
     return f"API error: {error}"
 
 
-def sign_in_anonymously(config: dict[str, str]) -> dict[str, str]:
-    url = f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={config['apiKey']}"
-    result = request_json(url, "POST", {"returnSecureToken": True})
-    return {
-        "uid": str(result["localId"]),
-        "idToken": str(result["idToken"]),
-        "email": str(result.get("email") or ""),
-    }
-
-
-def firestore_value(value: Any) -> dict[str, Any]:
-    if isinstance(value, bool):
-        return {"booleanValue": value}
-    if isinstance(value, int):
-        return {"integerValue": str(value)}
-    if isinstance(value, float):
-        return {"doubleValue": value}
-    if isinstance(value, str) and ISO_TIMESTAMP_RE.match(value):
-        return {"timestampValue": value}
-    if value is None:
-        return {"nullValue": None}
-    return {"stringValue": str(value)}
-
-
-def firestore_document(fields: dict[str, Any]) -> dict[str, Any]:
-    return {"fields": {key: firestore_value(value) for key, value in fields.items()}}
-
-
-def firestore_patch(config: dict[str, str], token: str, collection: str, doc_id: str, fields: dict[str, Any]) -> None:
-    safe_doc_id = urllib.parse.quote(doc_id.replace("/", "_"), safe="")
-    url = (
-        f"https://firestore.googleapis.com/v1/projects/{config['projectId']}"
-        f"/databases/(default)/documents/{collection}/{safe_doc_id}"
-    )
-    request_json(url, "PATCH", firestore_document(fields), token=token)
-
-
-def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: argparse.Namespace, state: dict[str, Any]) -> None:
+def sync_once(args: argparse.Namespace, state: dict[str, Any]) -> None:
     events = collect_events(args)
     summaries = summarize_events(events)
     if args.max_events > 0:
@@ -638,7 +565,6 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
         )
         return
 
-    assert config is not None
     fingerprints = state.get("dailySummaryFingerprints") or {}
     changed_summaries = []
     for summary in summaries:
@@ -662,23 +588,29 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
     changed_counts: dict[str, int] = {}
     changed_tokens = 0
 
+    payload = {
+        "ownerId": args.owner_id,
+        "ownerName": args.name,
+        "agent": args.agent,
+        "workspacePath": str(RUN_CONTEXT),
+        "trackerPath": str(ROOT),
+        "trackerSource": "local-agent-log-python",
+        "summaries": [],
+    }
+
     for summary, fingerprint in changed_summaries:
-        firestore_patch(
-            config,
-            auth_user["idToken"],
-            "usageDailySummaries",
-            summary["summaryId"],
-            {
-                **summary,
-                "authUid": auth_user["uid"],
-                "authEmail": auth_user.get("email", ""),
-                "syncedAt": now_iso(),
-            },
-        )
         fingerprints[summary["summaryId"]] = fingerprint
+        payload["summaries"].append(summary)
         changed += 1
         changed_counts[summary["agent"]] = changed_counts.get(summary["agent"], 0) + 1
         changed_tokens += int(summary["totalTokens"])
+
+    request_json(
+        TRACKER_UPLOAD_URL,
+        "POST",
+        payload,
+        token=TRACKER_WRITE_TOKEN,
+    )
 
     state["dailySummaryFingerprints"] = fingerprints
     state["lastUploadedAt"] = now_iso()
@@ -693,13 +625,7 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
 
 
 def explain_error(error: Exception) -> str:
-    message = str(error)
-    if "OPERATION_NOT_ALLOWED" in message or "ADMIN_ONLY_OPERATION" in message:
-        return (
-            "Firebase Anonymous Auth provider is disabled. "
-            "Enable Firebase Console > Authentication > Sign-in method > Anonymous."
-        )
-    return message
+    return str(error)
 
 
 def main() -> int:
@@ -711,33 +637,17 @@ def main() -> int:
     state = read_json(STATE_PATH, {"uploadedEventIds": []})
 
     if args.dry_run:
-        sync_once(None, {"uid": "dry-run", "idToken": "", "email": ""}, args, state)
+        sync_once(args, state)
         return 0
 
-    config = firebase_config()
-    auth_user = sign_in_anonymously(config)
-    firestore_patch(
-        config,
-        auth_user["idToken"],
-        "trackerClients",
-        auth_user["uid"],
-        {
-            "ownerName": args.name,
-            "ownerId": args.owner_id,
-            "agent": args.agent,
-            "lastSeenAt": now_iso(),
-            "source": "local-agent-log-python",
-        },
-    )
-
     if args.once:
-        sync_once(config, auth_user, args, state)
+        sync_once(args, state)
         return 0
 
     emit("watching local agent logs", "run")
     while True:
         try:
-            sync_once(config, auth_user, args, state)
+            sync_once(args, state)
         except Exception as error:  # Keep the watcher alive during transient failures.
             emit(explain_error(error), "error", error=True)
         time.sleep(args.interval_seconds)

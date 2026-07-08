@@ -1,9 +1,26 @@
+import { headers } from "next/headers";
 import { renderTrackerAsset } from "@/lib/tracker-installer";
 
-export async function GET() {
-  const trackerSource = await renderTrackerAsset("track_agent_usage.py");
+async function absoluteBaseUrl(requestUrl: string) {
+  const headerStore = await headers();
+  const forwardedProto = headerStore.get("x-forwarded-proto");
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const host = forwardedHost ?? headerStore.get("host");
+
+  if (host) {
+    return `${forwardedProto ?? "https"}://${host}`;
+  }
+
+  const url = new URL(requestUrl);
+  return `${url.protocol}//${url.host}`;
+}
+
+export async function GET(request: Request) {
+  const trackerSource = await renderTrackerAsset("track_agent_usage.py", {
+    baseUrl: await absoluteBaseUrl(request.url),
+  });
   const script = `$ErrorActionPreference = "Stop"
-$InstallDir = Join-Path (Get-Location) ".agent-usage-tracker"
+$InstallDir = Join-Path $HOME ".agent-usage-tracker"
 $TrackerSource = @'
 ${trackerSource}
 '@
@@ -41,10 +58,8 @@ function Run-Python($PythonCommand, $ScriptPath, $ExtraArgs) {
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
 $TrackerPath = Join-Path $InstallDir "track_agent_usage.py"
-$GitignorePath = Join-Path $InstallDir ".gitignore"
 
 Set-Content -Path $TrackerPath -Encoding UTF8 -Value $TrackerSource
-Set-Content -Path $GitignorePath -Encoding UTF8 -Value @(".tracker-config.json", ".tracker-state.json", "")
 
 Write-Host "[agent-usage-tracker] installed minimal Python tracker to $InstallDir"
 

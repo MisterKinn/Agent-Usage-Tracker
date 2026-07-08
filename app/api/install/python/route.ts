@@ -1,13 +1,30 @@
+import { headers } from "next/headers";
 import { renderTrackerAsset } from "@/lib/tracker-installer";
 
-export async function GET() {
-    const trackerSource = await renderTrackerAsset("track_agent_usage.py");
+async function absoluteBaseUrl(requestUrl: string) {
+    const headerStore = await headers();
+    const forwardedProto = headerStore.get("x-forwarded-proto");
+    const forwardedHost = headerStore.get("x-forwarded-host");
+    const host = forwardedHost ?? headerStore.get("host");
+
+    if (host) {
+        return `${forwardedProto ?? "https"}://${host}`;
+    }
+
+    const url = new URL(requestUrl);
+    return `${url.protocol}//${url.host}`;
+}
+
+export async function GET(request: Request) {
+    const trackerSource = await renderTrackerAsset("track_agent_usage.py", {
+        baseUrl: await absoluteBaseUrl(request.url),
+    });
     const script = `#!/usr/bin/env python3
 import subprocess
 import sys
 from pathlib import Path
 
-INSTALL_DIR = Path.cwd() / ".agent-usage-tracker"
+INSTALL_DIR = Path.home() / ".agent-usage-tracker"
 TRACKER_SOURCE = ${JSON.stringify(trackerSource)}
 
 def fail(message):
@@ -20,8 +37,6 @@ def main():
 
     INSTALL_DIR.mkdir(parents=True, exist_ok=True)
     (INSTALL_DIR / "track_agent_usage.py").write_text(TRACKER_SOURCE, encoding="utf-8")
-    (INSTALL_DIR / ".gitignore").write_text(".tracker-config.json\\n.tracker-state.json\\n", encoding="utf-8")
-
     print(f"[agent-usage-tracker] installed minimal Python tracker to {INSTALL_DIR}")
 
     if install_only:

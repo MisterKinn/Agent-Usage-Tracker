@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   renameSync,
@@ -12,25 +13,21 @@ import { join, resolve } from "node:path";
 import process from "node:process";
 import { createInterface } from "node:readline/promises";
 import dotenv from "dotenv";
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously } from "firebase/auth";
-import {
-  doc,
-  getFirestore,
-  serverTimestamp,
-  setDoc,
-  Timestamp,
-} from "firebase/firestore";
+import { randomUUID } from "node:crypto";
 
 dotenv.config({ path: [".env.local", ".env"] });
 
 const THREAD_RE = /thread(?:\.id|_id)=([0-9a-f-]{36})/;
-const EMBEDDED_FIREBASE_CONFIG = "__AGENT_TRACKER_FIREBASE_CONFIG__";
+const TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__";
+const TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__";
 const DEFAULT_CODEX_DB = `${homedir()}/.codex/logs_2.sqlite`;
 const DEFAULT_CODEX_SESSION_INDEX = `${homedir()}/.codex/session_index.jsonl`;
 const DEFAULT_CLAUDE_PROJECTS_DIR = `${homedir()}/.claude/projects`;
 const STATE_PATH = resolve(".tracker-state.json");
-const CONFIG_PATH = resolve(".tracker-config.json");
+const ROOT = process.cwd();
+const GLOBAL_CONFIG_DIR = `${homedir()}/.agent-usage-tracker`;
+const CONFIG_PATH = `${GLOBAL_CONFIG_DIR}/profile.json`;
+const LEGACY_CONFIG_PATH = resolve(".tracker-config.json");
 
 function readArgs(argv) {
   const args = {
@@ -98,39 +95,60 @@ function readArgs(argv) {
 }
 
 function readConfig() {
-  if (!existsSync(CONFIG_PATH)) {
-    return {};
+  if (existsSync(CONFIG_PATH)) {
+    return JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
   }
 
-  return JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
+  if (existsSync(LEGACY_CONFIG_PATH)) {
+    const legacy = JSON.parse(readFileSync(LEGACY_CONFIG_PATH, "utf8"));
+    if (!String(legacy.ownerId ?? "").trim()) {
+      legacy.ownerId = `owner-${randomUUID().replaceAll("-", "")}`;
+    }
+    writeConfig(legacy);
+    return legacy;
+  }
+
+  return {};
 }
 
 function writeConfig(config) {
+  mkdirSync(GLOBAL_CONFIG_DIR, { recursive: true });
   writeFileSync(`${CONFIG_PATH}.tmp`, JSON.stringify(config, null, 2), "utf8");
   renameSync(`${CONFIG_PATH}.tmp`, CONFIG_PATH);
 }
 
-async function resolveOwnerName(args) {
+async function resolveOwnerProfile(args) {
   const config = readConfig();
+  const ownerId = String(config.ownerId ?? `owner-${randomUUID().replaceAll("-", "")}`).trim();
 
   if (args.name) {
     const nextConfig = {
       ...config,
       ownerName: args.name,
+      ownerId,
       updatedAt: new Date().toISOString(),
     };
     writeConfig(nextConfig);
     console.log(`[agent-usage-tracker] saved owner name: ${args.name}`);
-    return args.name;
+    return { ownerName: args.name, ownerId };
   }
 
   if (config.ownerName) {
-    return String(config.ownerName).trim();
+    if (String(config.ownerId ?? "").trim() !== ownerId) {
+      writeConfig({ ...config, ownerId });
+    }
+    return { ownerName: String(config.ownerName).trim(), ownerId };
   }
 
   const envName = process.env.AGENT_TRACKER_NAME?.trim();
   if (envName) {
-    return envName;
+    writeConfig({
+      ...config,
+      ownerName: envName,
+      ownerId,
+      updatedAt: new Date().toISOString(),
+    });
+    return { ownerName: envName, ownerId };
   }
 
   if (!process.stdin.isTTY) {
@@ -152,45 +170,11 @@ async function resolveOwnerName(args) {
   writeConfig({
     ...config,
     ownerName: answer,
+    ownerId,
     updatedAt: new Date().toISOString(),
   });
   console.log(`[agent-usage-tracker] saved owner name: ${answer}`);
-  return answer;
-}
-
-function firebaseConfig() {
-  if (
-    EMBEDDED_FIREBASE_CONFIG &&
-    typeof EMBEDDED_FIREBASE_CONFIG === "object" &&
-    !Array.isArray(EMBEDDED_FIREBASE_CONFIG)
-  ) {
-    const missing = Object.entries(EMBEDDED_FIREBASE_CONFIG)
-      .filter(([, value]) => !value)
-      .map(([key]) => key);
-
-    if (!missing.length) {
-      return EMBEDDED_FIREBASE_CONFIG;
-    }
-  }
-
-  const config = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  };
-
-  const missing = Object.entries(config)
-    .filter(([, value]) => !value || String(value).startsWith("replace-with-"))
-    .map(([key]) => key);
-
-  if (missing.length) {
-    throw new Error(`Missing Firebase env values: ${missing.join(", ")}`);
-  }
-
-  return config;
+  return { ownerName: answer, ownerId };
 }
 
 function readState() {
@@ -307,6 +291,7 @@ function parseCodexEvents(args) {
       eventId: `codex:${response.id}`,
       agent: "codex",
       ownerName: args.name,
+      ownerId: args.ownerId,
       sessionId,
       sessionName: sessionNames.get(sessionId) ?? "",
       responseId: response.id,
@@ -316,7 +301,7 @@ function parseCodexEvents(args) {
       reasoningTokens: Number(usage.output_tokens_details?.reasoning_tokens ?? 0),
       totalTokens: Number(usage.total_tokens ?? 0),
       model: response.model ?? "",
-      completedAt: Timestamp.fromMillis(completedAtSeconds * 1000),
+      completedAt: new Date(completedAtSeconds * 1000).toISOString(),
       source: "codex-local-log",
     });
   }
@@ -382,6 +367,7 @@ function parseClaudeEvents(args) {
         eventId: `claude:${sessionId}:${message.id}`,
         agent: "claude",
         ownerName: args.name,
+        ownerId: args.ownerId,
         sessionId,
         sessionName: item.cwd ?? "",
         responseId: message.id,
@@ -392,7 +378,7 @@ function parseClaudeEvents(args) {
         reasoningTokens: 0,
         totalTokens,
         model: message.model ?? "",
-        completedAt: Timestamp.fromDate(completedAt),
+        completedAt: completedAt.toISOString(),
         source: "claude-code-jsonl",
       });
     }
@@ -411,11 +397,27 @@ function collectEvents(args) {
   }
   const cutoffMs = args.allHistory ? 0 : Date.now() - args.sinceDays * 24 * 60 * 60 * 1000;
   return events
-    .filter((event) => event.completedAt.toMillis() >= cutoffMs)
-    .sort((a, b) => b.completedAt.toMillis() - a.completedAt.toMillis());
+    .filter((event) => new Date(event.completedAt).getTime() >= cutoffMs)
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 }
 
-async function syncOnce({ db, authUser, args, state }) {
+async function requestJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${TRACKER_WRITE_TOKEN}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error ?? `Tracker upload failed (${response.status})`);
+  }
+  return payload;
+}
+
+async function syncOnce({ args, state }) {
   const uploaded = new Set(state.uploadedEventIds ?? []);
   const events = collectEvents(args)
     .filter((event) => !uploaded.has(event.eventId))
@@ -433,17 +435,19 @@ async function syncOnce({ db, authUser, args, state }) {
     return;
   }
 
+  if (events.length > 0) {
+    await requestJson(TRACKER_UPLOAD_URL, {
+      ownerId: args.ownerId,
+      ownerName: args.name,
+      agent: args.agent,
+      workspacePath: ROOT,
+      trackerPath: ROOT,
+      trackerSource: "local-agent-log-node",
+      events,
+    });
+  }
+
   for (const event of events) {
-    await setDoc(
-      doc(db, "usageEvents", event.eventId.replaceAll("/", "_")),
-      {
-        ...event,
-        authUid: authUser.uid,
-        authEmail: authUser.email ?? "",
-        syncedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
     uploaded.add(event.eventId);
   }
 
@@ -462,54 +466,34 @@ async function syncOnce({ db, authUser, args, state }) {
 
 async function main() {
   const args = readArgs(process.argv.slice(2));
-  args.name = await resolveOwnerName(args);
+  const ownerProfile = await resolveOwnerProfile(args);
+  args.name = ownerProfile.ownerName;
+  args.ownerId = ownerProfile.ownerId;
 
   if (args.dryRun) {
     const state = readState();
-    await syncOnce({ db: null, authUser: { uid: "dry-run", email: "" }, args, state });
+    await syncOnce({ args, state });
     return;
   }
 
-  const app = initializeApp(firebaseConfig());
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const credential = await signInAnonymously(auth);
   const state = readState();
 
-  await setDoc(
-    doc(db, "trackerClients", credential.user.uid),
-    {
-      ownerName: args.name,
-      agent: args.agent,
-      lastSeenAt: serverTimestamp(),
-      source: "local-agent-log",
-    },
-    { merge: true },
-  );
-
   if (args.once) {
-    await syncOnce({ db, authUser: credential.user, args, state });
+    await syncOnce({ args, state });
     return;
   }
 
   console.log(`[agent-usage-tracker] watching local agent logs as ${args.name} (${args.agent})`);
-  await syncOnce({ db, authUser: credential.user, args, state });
+  await syncOnce({ args, state });
   setInterval(() => {
-    syncOnce({ db, authUser: credential.user, args, state }).catch((error) => {
+    syncOnce({ args, state }).catch((error) => {
       console.error(`[agent-usage-tracker] ${explainError(error)}`);
     });
   }, args.intervalMs);
 }
 
 function explainError(error) {
-  const message = error instanceof Error ? error.message : String(error);
-  if (message.includes("auth/admin-restricted-operation")) {
-    return [
-      "Firebase Anonymous Auth provider is disabled.",
-      "Enable Firebase Console > Authentication > Sign-in method > Anonymous, then run the tracker again.",
-    ].join(" ");
-  }
-  return message;
+  return error instanceof Error ? error.message : String(error);
 }
 
 main().catch((error) => {
