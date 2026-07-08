@@ -101,7 +101,7 @@ export default function ContactPage() {
             <section className="section-heading">
                 <p className="eyebrow">Contact</p>
                 <h1>문의</h1>
-                <p>
+                <p className={styles.lead}>
                     설치, 로그인, 추적 누락, Firebase 연동 문제를 바로 접수할 수
                     있습니다.
                 </p>
