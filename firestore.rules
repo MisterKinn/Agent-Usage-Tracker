@@ -6,6 +6,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email in ['ksy535760@gmail.com'];
+    }
+
     function writesOwnAuthUid() {
       return signedIn()
         && request.resource.data.authUid is string
@@ -25,6 +31,16 @@ service cloud.firestore {
     match /trackerClients/{clientId} {
       allow read: if signedIn();
       allow create, update: if signedIn() && clientId == request.auth.uid;
+    }
+
+    match /contactMessages/{messageId} {
+      allow create: if writesOwnAuthUid();
+      allow read, update: if isAdmin();
+    }
+
+    match /visitorInsights/{insightId} {
+      allow read: if isAdmin();
+      allow create, update: if writesOwnAuthUid();
     }
   }
 }

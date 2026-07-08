@@ -5,6 +5,7 @@ import { Terminal } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useEffect, useState } from "react";
+import { isAdminEmail } from "@/lib/admin";
 import { auth } from "@/lib/firebase";
 
 function isActive(pathname: string, href: string) {
@@ -67,6 +68,16 @@ export function SiteNav() {
                     >
                         문의
                     </Link>
+                    {isAdminEmail(user?.email) ? (
+                        <Link
+                            className={
+                                isActive(pathname, "/admin") ? "active" : ""
+                            }
+                            href="/admin"
+                        >
+                            관리자
+                        </Link>
+                    ) : null}
                     {user ? null : (
                         <Link className="nav-action" href="/login">
                             로그인
