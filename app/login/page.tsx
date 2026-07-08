@@ -101,12 +101,10 @@ export default function LoginPage() {
     return (
         <main className="page auth-shell">
             <section className="auth-panel">
-                <p className="eyebrow">Account</p>
-                <h1>{authMode === "signin" ? "로그인" : "회원가입"}</h1>
-                <p>
-                    팀의 Codex와 Claude Code 사용량 대시보드에 접근하려면 계정이
-                    필요합니다.
+                <p className="eyebrow">
+                    {authMode === "signin" ? "Login" : "Sign Up"}
                 </p>
+                <h1>{authMode === "signin" ? "로그인" : "회원가입"}</h1>
 
                 {!hasFirebaseConfig() ? (
                     <div className="notice">
