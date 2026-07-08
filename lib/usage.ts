@@ -1,22 +1,23 @@
 import type { Timestamp } from "firebase/firestore";
 
-export type UsageEvent = {
+export type UsageSummary = {
   id: string;
+  summaryId: string;
+  dateKey: string;
   agent: "codex" | "claude" | "unknown";
   ownerName: string;
   authUid: string;
   authEmail: string;
-  sessionId: string;
-  sessionName: string;
-  responseId: string;
+  events: number;
+  sessions: number;
   inputTokens: number;
   cachedTokens: number;
+  cacheCreationTokens: number;
   outputTokens: number;
   reasoningTokens: number;
   totalTokens: number;
-  model: string;
-  source: "codex-local-log" | "claude-code-jsonl";
-  completedAt: Timestamp | Date | null;
+  source: string;
+  lastCompletedAt: Timestamp | Date | null;
   syncedAt: Timestamp | Date | null;
 };
 
@@ -41,65 +42,59 @@ export function formatNumber(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
-export function summarizeByOwner(events: UsageEvent[]): OwnerSummary[] {
-  const map = new Map<string, OwnerSummary & { sessionIds: Set<string> }>();
+export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
+  const map = new Map<string, OwnerSummary>();
 
-  for (const event of events) {
-    const ownerName = event.ownerName || "unassigned";
-    const item =
+  for (const item of items) {
+    const ownerName = item.ownerName || "unassigned";
+    const existing =
       map.get(ownerName) ??
       ({
         ownerName,
         events: 0,
         sessions: 0,
-        sessionIds: new Set<string>(),
         totalTokens: 0,
         inputTokens: 0,
         outputTokens: 0,
         cachedTokens: 0,
-      } satisfies OwnerSummary & { sessionIds: Set<string> });
+      } satisfies OwnerSummary);
 
-    item.events += 1;
-    item.sessionIds.add(event.sessionId || "(missing)");
-    item.totalTokens += event.totalTokens || 0;
-    item.inputTokens += event.inputTokens || 0;
-    item.outputTokens += event.outputTokens || 0;
-    item.cachedTokens += event.cachedTokens || 0;
-    map.set(ownerName, item);
+    existing.events += item.events || 0;
+    existing.sessions += item.sessions || 0;
+    existing.totalTokens += item.totalTokens || 0;
+    existing.inputTokens += item.inputTokens || 0;
+    existing.outputTokens += item.outputTokens || 0;
+    existing.cachedTokens += item.cachedTokens || 0;
+    map.set(ownerName, existing);
   }
 
-  return Array.from(map.values())
-    .map(({ sessionIds, ...item }) => ({ ...item, sessions: sessionIds.size }))
-    .sort((a, b) => b.totalTokens - a.totalTokens);
+  return Array.from(map.values()).sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
-export function summarizeByAgent(events: UsageEvent[]): AgentSummary[] {
-  const map = new Map<string, AgentSummary & { sessionIds: Set<string> }>();
+export function summarizeByAgent(items: UsageSummary[]): AgentSummary[] {
+  const map = new Map<string, AgentSummary>();
 
-  for (const event of events) {
-    const agent = event.agent || "unknown";
-    const item =
+  for (const item of items) {
+    const agent = item.agent || "unknown";
+    const existing =
       map.get(agent) ??
       ({
         agent,
         events: 0,
         sessions: 0,
-        sessionIds: new Set<string>(),
         totalTokens: 0,
-      } satisfies AgentSummary & { sessionIds: Set<string> });
+      } satisfies AgentSummary);
 
-    item.events += 1;
-    item.sessionIds.add(event.sessionId || "(missing)");
-    item.totalTokens += event.totalTokens || 0;
-    map.set(agent, item);
+    existing.events += item.events || 0;
+    existing.sessions += item.sessions || 0;
+    existing.totalTokens += item.totalTokens || 0;
+    map.set(agent, existing);
   }
 
-  return Array.from(map.values())
-    .map(({ sessionIds, ...item }) => ({ ...item, sessions: sessionIds.size }))
-    .sort((a, b) => b.totalTokens - a.totalTokens);
+  return Array.from(map.values()).sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
-export function toDate(value: UsageEvent["completedAt"]) {
+export function toDate(value: UsageSummary["lastCompletedAt"]) {
   if (!value) {
     return null;
   }

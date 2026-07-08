@@ -90,6 +90,11 @@ def format_counts(counts: dict[str, int]) -> str:
     return " · ".join(f"{agent}:{count}" for agent, count in sorted(counts.items()))
 
 
+def slug_fragment(value: str) -> str:
+    lowered = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return lowered or "unknown"
+
+
 def read_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Upload local Codex/Claude usage to Firestore.")
     parser.add_argument("--name", default="")
@@ -392,6 +397,72 @@ def collect_events(args: argparse.Namespace) -> list[dict[str, Any]]:
     )
 
 
+def summarize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+
+    for event in events:
+        date_key = str(event["completedAt"])[:10]
+        owner_name = str(event.get("ownerName") or "unassigned")
+        agent = str(event.get("agent") or "unknown")
+        summary_id = f"{date_key}:{agent}:{slug_fragment(owner_name)}"
+
+        item = grouped.get(summary_id)
+        if item is None:
+            item = {
+                "summaryId": summary_id,
+                "dateKey": date_key,
+                "ownerName": owner_name,
+                "agent": agent,
+                "events": 0,
+                "sessions": set(),
+                "inputTokens": 0,
+                "cachedTokens": 0,
+                "cacheCreationTokens": 0,
+                "outputTokens": 0,
+                "reasoningTokens": 0,
+                "totalTokens": 0,
+                "lastCompletedAt": event["completedAt"],
+                "source": "daily-agent-summary",
+            }
+            grouped[summary_id] = item
+
+        item["events"] += 1
+        if event.get("sessionId"):
+            item["sessions"].add(str(event["sessionId"]))
+        item["inputTokens"] += int(event.get("inputTokens") or 0)
+        item["cachedTokens"] += int(event.get("cachedTokens") or 0)
+        item["cacheCreationTokens"] += int(event.get("cacheCreationTokens") or 0)
+        item["outputTokens"] += int(event.get("outputTokens") or 0)
+        item["reasoningTokens"] += int(event.get("reasoningTokens") or 0)
+        item["totalTokens"] += int(event.get("totalTokens") or 0)
+
+        if str(event["completedAt"]) > str(item["lastCompletedAt"]):
+            item["lastCompletedAt"] = event["completedAt"]
+
+    summaries: list[dict[str, Any]] = []
+    for item in grouped.values():
+        summaries.append(
+            {
+                "summaryId": item["summaryId"],
+                "dateKey": item["dateKey"],
+                "ownerName": item["ownerName"],
+                "agent": item["agent"],
+                "events": item["events"],
+                "sessions": len(item["sessions"]),
+                "inputTokens": item["inputTokens"],
+                "cachedTokens": item["cachedTokens"],
+                "cacheCreationTokens": item["cacheCreationTokens"],
+                "outputTokens": item["outputTokens"],
+                "reasoningTokens": item["reasoningTokens"],
+                "totalTokens": item["totalTokens"],
+                "lastCompletedAt": item["lastCompletedAt"],
+                "source": item["source"],
+            }
+        )
+
+    return sorted(summaries, key=lambda item: item["lastCompletedAt"], reverse=True)
+
+
 def request_json(url: str, method: str, body: dict[str, Any], token: str = "") -> dict[str, Any]:
     data = json.dumps(body).encode("utf-8")
     headers = {"content-type": "application/json"}
@@ -495,54 +566,65 @@ def firestore_patch(config: dict[str, str], token: str, collection: str, doc_id:
 
 
 def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: argparse.Namespace, state: dict[str, Any]) -> None:
-    uploaded = set(state.get("uploadedEventIds") or state.get("uploadedResponseIds") or [])
-    events = [event for event in collect_events(args) if event["eventId"] not in uploaded]
+    events = collect_events(args)
+    summaries = summarize_events(events)
     if args.max_events > 0:
-        events = events[: args.max_events]
+        summaries = summaries[: args.max_events]
 
     if args.dry_run:
         counts: dict[str, int] = {}
-        for event in events:
-            counts[event["agent"]] = counts.get(event["agent"], 0) + 1
-        total_tokens = sum(int(event["totalTokens"]) for event in events)
+        total_tokens = 0
+        total_event_count = 0
+        for summary in summaries:
+            counts[summary["agent"]] = counts.get(summary["agent"], 0) + 1
+            total_tokens += int(summary["totalTokens"])
+            total_event_count += int(summary["events"])
         emit(
             "dry-run "
-            f"events={len(events)} total_tokens={total_tokens} agents={format_counts(counts)}",
+            f"summaries={len(summaries)} events={total_event_count} total_tokens={total_tokens} agents={format_counts(counts)}",
             "info",
         )
         return
 
     assert config is not None
-    for event in events:
+    fingerprints = state.get("dailySummaryFingerprints") or {}
+    changed = 0
+    changed_counts: dict[str, int] = {}
+    changed_tokens = 0
+
+    for summary in summaries:
+        fingerprint = json.dumps(summary, ensure_ascii=False, sort_keys=True)
+        if fingerprints.get(summary["summaryId"]) == fingerprint:
+            continue
+
         firestore_patch(
             config,
             auth_user["idToken"],
-            "usageEvents",
-            event["eventId"],
+            "usageDailySummaries",
+            summary["summaryId"],
             {
-                **event,
+                **summary,
                 "authUid": auth_user["uid"],
                 "authEmail": auth_user.get("email", ""),
                 "syncedAt": now_iso(),
             },
         )
-        uploaded.add(event["eventId"])
+        fingerprints[summary["summaryId"]] = fingerprint
+        changed += 1
+        changed_counts[summary["agent"]] = changed_counts.get(summary["agent"], 0) + 1
+        changed_tokens += int(summary["totalTokens"])
 
-    state["uploadedEventIds"] = list(uploaded)[-5000:]
+    state["dailySummaryFingerprints"] = fingerprints
     state["lastSyncedAt"] = now_iso()
     write_json(STATE_PATH, state)
 
-    counts: dict[str, int] = {}
-    for event in events:
-        counts[event["agent"]] = counts.get(event["agent"], 0) + 1
-    total_tokens = sum(int(event["totalTokens"]) for event in events)
-    if events:
+    if changed:
         emit(
-            f"synced {len(events)} event(s) · tokens={total_tokens} · agents={format_counts(counts)}",
+            f"synced {changed} summary doc(s) · tokens={changed_tokens} · agents={format_counts(changed_counts)}",
             "ok",
         )
     else:
-        emit("no new events found", "warn")
+        emit("no summary changes found", "warn")
 
 
 def explain_error(error: Exception) -> str:

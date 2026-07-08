@@ -17,6 +17,11 @@ service cloud.firestore {
       allow create, update: if writesOwnAuthUid();
     }
 
+    match /usageDailySummaries/{summaryId} {
+      allow read: if signedIn();
+      allow create, update: if writesOwnAuthUid();
+    }
+
     match /trackerClients/{clientId} {
       allow read: if signedIn();
       allow create, update: if signedIn() && clientId == request.auth.uid;
