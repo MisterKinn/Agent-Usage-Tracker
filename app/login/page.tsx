@@ -188,7 +188,7 @@ export default function LoginPage() {
                     )}
                 </form>
 
-                <div className="auth-actions">
+                <div className={`auth-actions ${styles.actionRow}`}>
                     <button
                         className={`button secondary ${styles.googleButton}`}
                         type="button"
@@ -198,7 +198,7 @@ export default function LoginPage() {
                         Google로 계속하기
                     </button>
                     <button
-                        className="button ghost"
+                        className={`button secondary ${styles.switchButton}`}
                         type="button"
                         onClick={() =>
                             setAuthMode(
