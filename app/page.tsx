@@ -2,15 +2,20 @@ import Link from "next/link";
 import {
     ArrowRight,
     BarChart3,
-    CheckCircle2,
-    Clock3,
+    Command,
     ShieldCheck,
     Terminal,
     Users,
 } from "lucide-react";
 
-const INSTALL_COMMAND =
+const MAC_COMMAND =
     "/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3";
+const WINDOWS_COMMAND =
+    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))\"";
+const MAC_RERUN_COMMAND =
+    'cd ".agent-usage-tracker" && python3 track_agent_usage.py';
+const WINDOWS_RERUN_COMMAND =
+    'cd .agent-usage-tracker && py -3 track_agent_usage.py';
 
 const highlights = [
     {
@@ -32,16 +37,10 @@ const highlights = [
 
 export default function Home() {
     return (
-        <main>
-            <section className="install-strip">
-                <div className="install-strip-inner">
-                    <Terminal size={18} />
-                    <code>{INSTALL_COMMAND}</code>
-                </div>
-            </section>
-
+        <main className="dark-home">
             <nav className="site-nav">
                 <Link className="brand-link" href="/">
+                    <Terminal size={18} />
                     Agent Usage Tracker
                 </Link>
                 <div className="nav-links">
@@ -57,11 +56,10 @@ export default function Home() {
             <section className="landing-hero">
                 <div className="landing-copy">
                     <p className="eyebrow">CLI-first usage telemetry</p>
-                    <h1>Claude Code와 Codex 사용량을 팀 대시보드로 모읍니다</h1>
+                    <h1>Agent 사용량을 조용하게 추적하는 블랙 대시보드</h1>
                     <p>
-                        설치 커맨드 한 줄로 로컬 agent 로그를 연결하고, Next.js
-                        대시보드에서 사용자별 토큰 흐름과 최근 세션을 바로
-                        확인하세요.
+                        Windows와 macOS 터미널에서 한 줄만 실행하면 Codex와
+                        Claude Code 사용량이 실시간으로 모입니다.
                     </p>
                     <div className="hero-actions">
                         <Link className="button" href="/dashboard">
@@ -75,35 +73,30 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="product-panel" aria-label="usage dashboard preview">
-                    <div className="preview-topline">
-                        <span>live telemetry</span>
-                        <strong>32.8M tokens</strong>
-                    </div>
-                    <div className="preview-bars">
-                        <span style={{ height: "42%" }} />
-                        <span style={{ height: "76%" }} />
-                        <span style={{ height: "58%" }} />
-                        <span style={{ height: "88%" }} />
-                        <span style={{ height: "66%" }} />
-                        <span style={{ height: "94%" }} />
-                    </div>
-                    <div className="preview-list">
+                <div className="install-console" aria-label="install commands">
+                    <article className="command-card featured">
                         <div>
-                            <CheckCircle2 size={16} />
-                            <span>codex · planning session</span>
-                            <strong>184k</strong>
+                            <span>macOS / Linux</span>
+                            <h2>터미널 설치</h2>
                         </div>
+                        <code>{MAC_COMMAND}</code>
+                        <p>다시 실행</p>
+                        <code>{MAC_RERUN_COMMAND}</code>
+                        <Terminal size={18} />
+                    </article>
+                    <article className="command-card">
                         <div>
-                            <Clock3 size={16} />
-                            <span>claude · refactor session</span>
-                            <strong>91k</strong>
+                            <span>Windows</span>
+                            <h2>PowerShell 설치</h2>
                         </div>
-                        <div>
-                            <CheckCircle2 size={16} />
-                            <span>codex · dashboard polish</span>
-                            <strong>247k</strong>
-                        </div>
+                        <code>{WINDOWS_COMMAND}</code>
+                        <p>다시 실행</p>
+                        <code>{WINDOWS_RERUN_COMMAND}</code>
+                        <Terminal size={18} />
+                    </article>
+                    <div className="console-foot">
+                        <Command size={16} />
+                        <span>처음엔 설치 커맨드 · 이후엔 다시 실행 커맨드만 쓰면 됩니다</span>
                     </div>
                 </div>
             </section>

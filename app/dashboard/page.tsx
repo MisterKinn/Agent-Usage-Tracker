@@ -16,10 +16,11 @@ import {
 import Link from "next/link";
 import {
     Activity,
+    BarChart3,
     Copy,
     LogOut,
     Radio,
-    Terminal,
+    Sparkles,
     UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -59,6 +60,14 @@ function installCommand(os: OsKind) {
     }
 
     return `/usr/bin/curl -fsSL '${PRODUCTION_URL}/api/install/python' | python3`;
+}
+
+function rerunCommand(os: OsKind) {
+    if (os === "windows") {
+        return "cd .agent-usage-tracker && py -3 track_agent_usage.py";
+    }
+
+    return 'cd ".agent-usage-tracker" && python3 track_agent_usage.py';
 }
 
 function osLabel(os: OsKind) {
@@ -142,7 +151,13 @@ export default function DashboardPage() {
     const totalSessions = summaries.reduce((sum, item) => sum + item.sessions, 0);
     const totalEvents = summaries.reduce((sum, item) => sum + item.events, 0);
     const lastEventDate = toDate(summaries[0]?.lastCompletedAt ?? null);
-    const command = installCommand(os);
+    const install = installCommand(os);
+    const rerun = rerunCommand(os);
+    const maxOwnerTokens = Math.max(
+        ...summary.map((item) => item.totalTokens),
+        1,
+    );
+    const topOwner = summary[0];
 
     if (!hasFirebaseConfig()) {
         return (
@@ -185,7 +200,7 @@ export default function DashboardPage() {
 
     return (
         <main className="page">
-            <header className="topbar">
+            <header className="topbar dashboard-topbar">
                 <div className="brand">
                     <div className="mark">
                         <Radio size={24} />
@@ -213,20 +228,56 @@ export default function DashboardPage() {
                 </div>
             </header>
 
-            <section className="command-banner">
+            <section className="dashboard-hero">
                 <div>
-                    <p className="eyebrow">Install watcher · {osLabel(os)}</p>
-                    <code>{command}</code>
+                    <p className="eyebrow">Live team spend</p>
+                    <h2>사용자별 토큰 흐름</h2>
+                    <p>
+                        Firestore 일자 집계가 갱신되면 아래 그래프와 순위가 함께
+                        업데이트됩니다.
+                    </p>
                 </div>
-                <button
-                    className="icon-button"
-                    type="button"
-                    aria-label="설치 명령 복사"
-                    title="설치 명령 복사"
-                    onClick={() => navigator.clipboard.writeText(command)}
-                >
-                    <Copy size={18} />
-                </button>
+                <div className="hero-signal">
+                    <Sparkles size={18} />
+                    <span>
+                        {topOwner
+                            ? `${topOwner.ownerName} ${formatNumber(topOwner.totalTokens)} tokens`
+                            : "waiting for usage"}
+                    </span>
+                </div>
+            </section>
+
+            <section className="command-banner dashboard-command">
+                <div className="command-stack">
+                    <div className="command-group">
+                        <p className="eyebrow">Install watcher · {osLabel(os)}</p>
+                        <code>{install}</code>
+                    </div>
+                    <div className="command-group">
+                        <p className="eyebrow">Run again</p>
+                        <code>{rerun}</code>
+                    </div>
+                </div>
+                <div className="command-actions">
+                    <button
+                        className="icon-button"
+                        type="button"
+                        aria-label="설치 명령 복사"
+                        title="설치 명령 복사"
+                        onClick={() => navigator.clipboard.writeText(install)}
+                    >
+                        <Copy size={18} />
+                    </button>
+                    <button
+                        className="icon-button"
+                        type="button"
+                        aria-label="다시 실행 명령 복사"
+                        title="다시 실행 명령 복사"
+                        onClick={() => navigator.clipboard.writeText(rerun)}
+                    >
+                        <Copy size={18} />
+                    </button>
+                </div>
             </section>
 
             <section className="summary-grid">
@@ -272,7 +323,57 @@ export default function DashboardPage() {
                 </article>
             </section>
 
-            <section className="content-grid">
+            <section className="dashboard-grid">
+                <article className="chart-panel">
+                    <div className="panel-header">
+                        <h2>
+                            <BarChart3 size={18} />
+                            사용자별 토큰 그래프
+                        </h2>
+                        <span className="live">
+                            <Activity size={14} />
+                            realtime
+                        </span>
+                    </div>
+                    {summary.length ? (
+                        <div className="token-chart" aria-label="사용자별 토큰 사용량">
+                            {summary.slice(0, 8).map((item, index) => {
+                                const width = Math.max(
+                                    (item.totalTokens / maxOwnerTokens) * 100,
+                                    4,
+                                );
+                                return (
+                                    <div className="chart-row" key={item.ownerName}>
+                                        <div className="chart-label">
+                                            <strong>{item.ownerName}</strong>
+                                            <span>
+                                                {formatNumber(item.sessions)} sessions
+                                                · {formatNumber(item.events)} responses
+                                            </span>
+                                        </div>
+                                        <div className="chart-track">
+                                            <div
+                                                className="chart-fill"
+                                                style={{
+                                                    width: `${width}%`,
+                                                    transitionDelay: `${index * 35}ms`,
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="chart-value">
+                                            {formatNumber(item.totalTokens)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="empty">
+                            워처가 일자 집계를 올리면 사용자별 그래프가 나타납니다.
+                        </div>
+                    )}
+                </article>
+
                 <article className="panel">
                     <div className="panel-header">
                         <h2>사용자 순위</h2>
@@ -306,8 +407,13 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </article>
+            </section>
 
+            <section className="table-grid">
                 <article className="table-panel">
+                    <div className="panel-header table-title">
+                        <h2>최근 일자 집계</h2>
+                    </div>
                     <table>
                         <thead>
                             <tr>
