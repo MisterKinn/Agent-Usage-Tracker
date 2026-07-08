@@ -79,7 +79,8 @@ def emit_banner(args: argparse.Namespace) -> None:
     print(f"{paint('project', 'dim'):<16}{ROOT}")
     print(f"{paint('owner', 'dim'):<16}{args.name}")
     print(f"{paint('agent', 'dim'):<16}{args.agent}")
-    print(f"{paint('interval', 'dim'):<16}{args.interval_seconds}s")
+    print(f"{paint('scan', 'dim'):<16}{args.interval_seconds}s")
+    print(f"{paint('upload', 'dim'):<16}{args.upload_interval_seconds}s")
     print(f"{paint('window', 'dim'):<16}{'all history' if args.all_history else f'{args.since_days} days'}")
     print(line)
 
@@ -105,6 +106,7 @@ def read_args() -> argparse.Namespace:
     parser.add_argument("--max-events", type=int, default=200)
     parser.add_argument("--all-history", action="store_true")
     parser.add_argument("--interval-seconds", type=float, default=8)
+    parser.add_argument("--upload-interval-seconds", type=float, default=3600)
     parser.add_argument("--codex-db", default=str(Path.home() / ".codex" / "logs_2.sqlite"))
     parser.add_argument(
         "--codex-session-index",
@@ -212,6 +214,15 @@ def firebase_config() -> dict[str, str]:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def parse_state_time(value: Any) -> float:
+    if not value:
+        return 0.0
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return 0.0
 
 
 def timestamp_iso(seconds: float) -> str:
@@ -588,15 +599,29 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
 
     assert config is not None
     fingerprints = state.get("dailySummaryFingerprints") or {}
-    changed = 0
-    changed_counts: dict[str, int] = {}
-    changed_tokens = 0
-
+    changed_summaries = []
     for summary in summaries:
         fingerprint = json.dumps(summary, ensure_ascii=False, sort_keys=True)
         if fingerprints.get(summary["summaryId"]) == fingerprint:
             continue
+        changed_summaries.append((summary, fingerprint))
 
+    if not changed_summaries:
+        return
+
+    last_uploaded_at = parse_state_time(state.get("lastUploadedAt"))
+    upload_due = args.once or not last_uploaded_at
+    if not upload_due:
+        upload_due = (time.time() - last_uploaded_at) >= args.upload_interval_seconds
+
+    if not upload_due:
+        return
+
+    changed = 0
+    changed_counts: dict[str, int] = {}
+    changed_tokens = 0
+
+    for summary, fingerprint in changed_summaries:
         firestore_patch(
             config,
             auth_user["idToken"],
@@ -615,6 +640,7 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
         changed_tokens += int(summary["totalTokens"])
 
     state["dailySummaryFingerprints"] = fingerprints
+    state["lastUploadedAt"] = now_iso()
     state["lastSyncedAt"] = now_iso()
     write_json(STATE_PATH, state)
 
