@@ -76,10 +76,11 @@ def prompt_owner_name() -> str:
 
     tty_path = Path("/dev/tty")
     if tty_path.exists():
-        with tty_path.open("r+", encoding="utf-8", errors="ignore") as tty:
-            tty.write("Agent 사용자 이름: ")
-            tty.flush()
-            return tty.readline().strip()
+        with tty_path.open("w", encoding="utf-8", errors="ignore") as tty_out:
+            tty_out.write("Agent 사용자 이름: ")
+            tty_out.flush()
+        with tty_path.open("r", encoding="utf-8", errors="ignore") as tty_in:
+            return tty_in.readline().strip()
 
     raise RuntimeError('Owner name is required. Run again with --name "이름".')
 
