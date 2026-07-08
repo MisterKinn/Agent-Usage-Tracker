@@ -623,8 +623,6 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
             f"synced {changed} summary doc(s) · tokens={changed_tokens} · agents={format_counts(changed_counts)}",
             "ok",
         )
-    else:
-        emit("no summary changes found", "warn")
 
 
 def explain_error(error: Exception) -> str:
