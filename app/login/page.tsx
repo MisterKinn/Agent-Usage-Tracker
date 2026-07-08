@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
     createUserWithEmailAndPassword,
     GoogleAuthProvider,
@@ -10,7 +9,8 @@ import {
     updateProfile,
     type User,
 } from "firebase/auth";
-import { ArrowRight, Github, Mail, UserRound } from "lucide-react";
+import { Github, Mail, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 
@@ -37,6 +37,7 @@ function readableAuthError(error: unknown) {
 }
 
 export default function LoginPage() {
+    const router = useRouter();
     const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -49,8 +50,13 @@ export default function LoginPage() {
             return;
         }
 
-        return onAuthStateChanged(auth, setUser);
-    }, []);
+        return onAuthStateChanged(auth, (nextUser) => {
+            setUser(nextUser);
+            if (nextUser) {
+                router.replace("/dashboard");
+            }
+        });
+    }, [router]);
 
     async function submitEmailAuth(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -95,11 +101,11 @@ export default function LoginPage() {
     return (
         <main className="page auth-shell">
             <section className="auth-panel">
-                <p className="eyebrow">Secure workspace</p>
+                <p className="eyebrow">Account</p>
                 <h1>{authMode === "signin" ? "로그인" : "회원가입"}</h1>
                 <p>
-                    팀의 Codex와 Claude Code 사용량 대시보드에 접근하려면
-                    계정이 필요합니다.
+                    팀의 Codex와 Claude Code 사용량 대시보드에 접근하려면 계정이
+                    필요합니다.
                 </p>
 
                 {!hasFirebaseConfig() ? (
@@ -118,7 +124,9 @@ export default function LoginPage() {
                                 placeholder="팀에서 표시할 이름"
                                 type="text"
                                 value={name}
-                                onChange={(event) => setName(event.target.value)}
+                                onChange={(event) =>
+                                    setName(event.target.value)
+                                }
                                 required
                             />
                         </label>
@@ -148,12 +156,7 @@ export default function LoginPage() {
                         />
                     </label>
                     {error ? <div className="error">{error}</div> : null}
-                    {user ? (
-                        <Link className="button" href="/dashboard">
-                            대시보드로 이동
-                            <ArrowRight size={18} />
-                        </Link>
-                    ) : (
+                    {user ? null : (
                         <button className="button" type="submit">
                             {authMode === "signin" ? (
                                 <Mail size={18} />
