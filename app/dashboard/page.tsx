@@ -153,10 +153,7 @@ export default function DashboardPage() {
     const lastEventDate = toDate(summaries[0]?.lastCompletedAt ?? null);
     const install = installCommand(os);
     const rerun = rerunCommand(os);
-    const maxOwnerTokens = Math.max(
-        ...summary.map((item) => item.totalTokens),
-        1,
-    );
+    const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
 
     if (!hasFirebaseConfig()) {
@@ -338,10 +335,8 @@ export default function DashboardPage() {
                     {summary.length ? (
                         <div className="token-chart" aria-label="사용자별 토큰 사용량">
                             {summary.slice(0, 8).map((item, index) => {
-                                const width = Math.max(
-                                    (item.totalTokens / maxOwnerTokens) * 100,
-                                    4,
-                                );
+                                const share = item.totalTokens / chartTotalTokens;
+                                const width = Math.max(share * 100, 4);
                                 return (
                                     <div className="chart-row" key={item.ownerName}>
                                         <div className="chart-label">
@@ -361,6 +356,7 @@ export default function DashboardPage() {
                                             />
                                         </div>
                                         <div className="chart-value">
+                                            <span>{(share * 100).toFixed(1)}%</span>
                                             {formatNumber(item.totalTokens)}
                                         </div>
                                     </div>
@@ -393,6 +389,7 @@ export default function DashboardPage() {
                                         <div className="rank-meta">
                                             {formatNumber(item.sessions)} sessions
                                             · {formatNumber(item.events)} responses
+                                            · {((item.totalTokens / chartTotalTokens) * 100).toFixed(1)}%
                                         </div>
                                     </div>
                                     <div className="rank-value">
