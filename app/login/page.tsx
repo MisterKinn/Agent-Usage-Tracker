@@ -9,10 +9,37 @@ import {
     updateProfile,
     type User,
 } from "firebase/auth";
-import { Github, Mail, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import styles from "./login.module.css";
+
+function GoogleMark() {
+    return (
+        <svg
+            aria-hidden="true"
+            className={styles.googleMark}
+            viewBox="0 0 24 24"
+        >
+            <path
+                d="M21.805 12.23c0-.77-.069-1.508-.198-2.215H12v4.19h5.487a4.694 4.694 0 0 1-2.036 3.08v2.56h3.294c1.928-1.776 3.06-4.396 3.06-7.615Z"
+                fill="#4285F4"
+            />
+            <path
+                d="M12 22c2.76 0 5.074-.915 6.765-2.476l-3.294-2.56c-.914.613-2.083.975-3.47.975-2.668 0-4.928-1.8-5.734-4.22H2.86v2.64A10 10 0 0 0 12 22Z"
+                fill="#34A853"
+            />
+            <path
+                d="M6.266 13.72A5.993 5.993 0 0 1 5.945 12c0-.597.108-1.176.32-1.72V7.64H2.86A10 10 0 0 0 2 12c0 1.61.385 3.135 1.06 4.36l3.206-2.64Z"
+                fill="#FBBC05"
+            />
+            <path
+                d="M12 6.061c1.501 0 2.85.516 3.912 1.53l2.934-2.935C17.07 2.992 14.756 2 12 2A10 10 0 0 0 2.86 7.64l3.406 2.64C7.072 7.861 9.332 6.061 12 6.061Z"
+                fill="#EA4335"
+            />
+        </svg>
+    );
+}
 
 function readableAuthError(error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -100,7 +127,7 @@ export default function LoginPage() {
 
     return (
         <main className="page auth-shell">
-            <section className="auth-panel">
+            <section className={`auth-panel ${styles.loginPanel}`}>
                 <p className="eyebrow">
                     {authMode === "signin" ? "Login" : "Sign Up"}
                 </p>
@@ -156,11 +183,6 @@ export default function LoginPage() {
                     {error ? <div className="error">{error}</div> : null}
                     {user ? null : (
                         <button className="button" type="submit">
-                            {authMode === "signin" ? (
-                                <Mail size={18} />
-                            ) : (
-                                <UserRound size={18} />
-                            )}
                             {authMode === "signin" ? "로그인" : "계정 만들기"}
                         </button>
                     )}
@@ -168,11 +190,11 @@ export default function LoginPage() {
 
                 <div className="auth-actions">
                     <button
-                        className="button secondary"
+                        className={`button secondary ${styles.googleButton}`}
                         type="button"
                         onClick={signInGoogle}
                     >
-                        <Github size={18} />
+                        <GoogleMark />
                         Google로 계속하기
                     </button>
                     <button
