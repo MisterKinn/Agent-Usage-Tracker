@@ -70,6 +70,20 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     tmp_path.replace(path)
 
 
+def prompt_owner_name() -> str:
+    if sys.stdin.isatty():
+        return input("Agent 사용자 이름: ").strip()
+
+    tty_path = Path("/dev/tty")
+    if tty_path.exists():
+        with tty_path.open("r+", encoding="utf-8", errors="ignore") as tty:
+            tty.write("Agent 사용자 이름: ")
+            tty.flush()
+            return tty.readline().strip()
+
+    raise RuntimeError('Owner name is required. Run again with --name "이름".')
+
+
 def resolve_owner_name(args: argparse.Namespace) -> str:
     config = read_json(CONFIG_PATH, {})
     if args.name:
@@ -87,10 +101,7 @@ def resolve_owner_name(args: argparse.Namespace) -> str:
     if env_name:
         return env_name
 
-    if not sys.stdin.isatty():
-        raise RuntimeError('Owner name is required. Run again with --name "이름".')
-
-    answer = input("Agent 사용자 이름: ").strip()
+    answer = prompt_owner_name()
     if not answer:
         raise RuntimeError("Owner name is required.")
 

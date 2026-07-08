@@ -4,6 +4,7 @@ out
 .env
 .env.local
 .env.*.local
+.agent-usage-tracker/
 .tracker-config.json
 .tracker-state.json
 input/current_user.json
