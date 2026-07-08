@@ -1,19 +1,8 @@
-import Link from "next/link";
 import { LifeBuoy, Mail, MessageSquareText, Terminal } from "lucide-react";
 
 export default function ContactPage() {
     return (
         <main className="page narrow-page">
-            <nav className="site-nav compact">
-                <Link className="brand-link" href="/">
-                    Agent Usage Tracker
-                </Link>
-                <div className="nav-links">
-                    <Link href="/dashboard">대시보드</Link>
-                    <Link href="/account">계정</Link>
-                </div>
-            </nav>
-
             <section className="section-heading">
                 <p className="eyebrow">Contact</p>
                 <h1>문의</h1>

@@ -8,11 +8,7 @@ import {
     query,
     type DocumentData,
 } from "firebase/firestore";
-import {
-    onAuthStateChanged,
-    signOut,
-    type User,
-} from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import Link from "next/link";
 import {
     Activity,
@@ -97,7 +93,9 @@ export default function DashboardPage() {
         );
 
         return onSnapshot(usageQuery, (snapshot) => {
-            setSummaries(snapshot.docs.map((doc) => mapSummary(doc.id, doc.data())));
+            setSummaries(
+                snapshot.docs.map((doc) => mapSummary(doc.id, doc.data())),
+            );
         });
     }, [user]);
 
@@ -110,7 +108,10 @@ export default function DashboardPage() {
         (sum, item) => sum + item.totalTokens,
         0,
     );
-    const totalSessions = summaries.reduce((sum, item) => sum + item.sessions, 0);
+    const totalSessions = summaries.reduce(
+        (sum, item) => sum + item.sessions,
+        0,
+    );
     const totalEvents = summaries.reduce((sum, item) => sum + item.events, 0);
     const lastEventDate = toDate(summaries[0]?.lastCompletedAt ?? null);
     const chartTotalTokens = Math.max(totalTokens, 1);
@@ -200,7 +201,9 @@ export default function DashboardPage() {
     if (!authReady) {
         return (
             <main className="page auth-shell">
-                <section className="auth-panel">Firebase Auth 확인 중...</section>
+                <section className="auth-panel">
+                    Firebase Auth 확인 중...
+                </section>
             </main>
         );
     }
@@ -211,7 +214,10 @@ export default function DashboardPage() {
                 <section className="auth-panel">
                     <p className="eyebrow">Protected dashboard</p>
                     <h1>로그인이 필요합니다</h1>
-                    <p>팀 사용량을 보려면 먼저 로그인하거나 계정을 만들어 주세요.</p>
+                    <p>
+                        팀 사용량을 보려면 먼저 로그인하거나 계정을 만들어
+                        주세요.
+                    </p>
                     <Link className="button" href="/login">
                         로그인/회원가입
                     </Link>
@@ -250,50 +256,30 @@ export default function DashboardPage() {
                 </div>
             </header>
 
-            <section className="dashboard-hero">
-                <div>
-                    <p className="eyebrow">Live team spend</p>
-                    <h2>사용자별 토큰 흐름</h2>
-                    <p>
-                        Firestore 일자 집계가 갱신되면 아래 그래프와 순위가 함께
-                        업데이트됩니다. 기본 숫자는 cached token을 제외한 active
-                        token 기준입니다.
-                    </p>
-                </div>
-                <div className="hero-signal">
-                    <Sparkles size={18} />
-                    <span>
-                        {topOwner
-                            ? `${topOwner.ownerName} ${formatNumber(topOwner.totalTokens)} tokens`
-                            : "waiting for usage"}
-                    </span>
-                </div>
-            </section>
-
             <section className="summary-grid">
                 <article className="metric">
                     <span>active tokens</span>
                     <strong>{formatNumber(totalTokens)}</strong>
-                    <small>cached 제외 · raw {formatNumber(rawTotalTokens)}</small>
+                    <small>Raw token: {formatNumber(rawTotalTokens)}</small>
                 </article>
                 <article className="metric">
                     <span>tracked users</span>
                     <strong>{formatNumber(trackedUsers)}</strong>
                     <small>
                         {topOwner
-                            ? `top user ${topOwner.ownerName} · ${formatNumber(topOwner.totalTokens)}`
+                            ? `Top user: ${topOwner.ownerName} · ${formatNumber(topOwner.totalTokens)}`
                             : "아직 없음"}
                     </small>
                 </article>
                 <article className="metric">
                     <span>sessions</span>
                     <strong>{formatNumber(totalSessions)}</strong>
-                    <small>일자 집계 기준 세션 수</small>
+                    <small>총 세션 수</small>
                 </article>
                 <article className="metric">
                     <span>events</span>
                     <strong>{formatNumber(totalEvents)}</strong>
-                    <small>업로드된 원본 응답 수 합계</small>
+                    <small>에이전트의 총 응답 수</small>
                 </article>
                 <article className="metric">
                     <span>last sync</span>
@@ -323,16 +309,26 @@ export default function DashboardPage() {
                         </span>
                     </div>
                     {trendOwners.length && dateKeys.length ? (
-                        <div className={styles.trendChart} aria-label="유저별 최근 7일 토큰 추이">
+                        <div
+                            className={styles.trendChart}
+                            aria-label="유저별 최근 7일 토큰 추이"
+                        >
                             <div className={styles.trendLegend}>
                                 {trendSeries.map((series) => (
-                                    <div className={styles.legendItem} key={series.ownerName}>
+                                    <div
+                                        className={styles.legendItem}
+                                        key={series.ownerName}
+                                    >
                                         <span
                                             className={styles.legendDot}
-                                            style={{ backgroundColor: series.color }}
+                                            style={{
+                                                backgroundColor: series.color,
+                                            }}
                                         />
                                         <strong>{series.ownerName}</strong>
-                                        <span>{formatNumber(series.totalTokens)}</span>
+                                        <span>
+                                            {formatNumber(series.totalTokens)}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
@@ -377,20 +373,28 @@ export default function DashboardPage() {
                                                 style={{ stroke: series.color }}
                                             />
                                             {series.points.map((point) => (
-                                                <g key={`${series.ownerName}-${point.dateKey}`}>
+                                                <g
+                                                    key={`${series.ownerName}-${point.dateKey}`}
+                                                >
                                                     <circle
-                                                        className={styles.pointGlow}
+                                                        className={
+                                                            styles.pointGlow
+                                                        }
                                                         cx={point.x}
                                                         cy={point.y}
                                                         r="11"
-                                                        style={{ fill: series.color }}
+                                                        style={{
+                                                            fill: series.color,
+                                                        }}
                                                     />
                                                     <circle
                                                         className={styles.point}
                                                         cx={point.x}
                                                         cy={point.y}
                                                         r="7"
-                                                        style={{ fill: series.color }}
+                                                        style={{
+                                                            fill: series.color,
+                                                        }}
                                                     />
                                                     <title>
                                                         {`${series.ownerName} · ${point.dateKey} · ${formatNumber(point.tokens)} tokens`}
@@ -402,14 +406,17 @@ export default function DashboardPage() {
                                 </svg>
                                 <div className={styles.dateAxis}>
                                     {dateKeys.map((dateKey) => (
-                                        <span key={dateKey}>{formatDateKey(dateKey)}</span>
+                                        <span key={dateKey}>
+                                            {formatDateKey(dateKey)}
+                                        </span>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="empty">
-                            최근 일자 집계가 쌓이면 사용자별 추이 그래프가 나타납니다.
+                            최근 일자 집계가 쌓이면 사용자별 추이 그래프가
+                            나타납니다.
                         </div>
                     )}
                 </article>
@@ -428,17 +435,26 @@ export default function DashboardPage() {
                         </span>
                     </div>
                     {summary.length ? (
-                        <div className="token-chart" aria-label="사용자별 토큰 사용량">
+                        <div
+                            className="token-chart"
+                            aria-label="사용자별 토큰 사용량"
+                        >
                             {summary.slice(0, 8).map((item, index) => {
-                                const share = item.totalTokens / chartTotalTokens;
+                                const share =
+                                    item.totalTokens / chartTotalTokens;
                                 const width = Math.max(share * 100, 4);
                                 return (
-                                    <div className="chart-row" key={item.ownerName}>
+                                    <div
+                                        className="chart-row"
+                                        key={item.ownerName}
+                                    >
                                         <div className="chart-label">
                                             <strong>{item.ownerName}</strong>
                                             <span>
-                                                {formatNumber(item.sessions)} sessions
-                                                · {formatNumber(item.events)} responses
+                                                {formatNumber(item.sessions)}{" "}
+                                                sessions ·{" "}
+                                                {formatNumber(item.events)}{" "}
+                                                responses
                                             </span>
                                         </div>
                                         <div className="chart-track">
@@ -451,7 +467,9 @@ export default function DashboardPage() {
                                             />
                                         </div>
                                         <div className="chart-value">
-                                            <span>{(share * 100).toFixed(1)}%</span>
+                                            <span>
+                                                {(share * 100).toFixed(1)}%
+                                            </span>
                                             {formatNumber(item.totalTokens)}
                                         </div>
                                     </div>
@@ -460,7 +478,8 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         <div className="empty">
-                            워처가 일자 집계를 올리면 사용자별 그래프가 나타납니다.
+                            워처가 일자 집계를 올리면 사용자별 그래프가
+                            나타납니다.
                         </div>
                     )}
                 </article>
@@ -482,9 +501,16 @@ export default function DashboardPage() {
                                             {item.ownerName}
                                         </div>
                                         <div className="rank-meta">
-                                            {formatNumber(item.sessions)} sessions
-                                            · {formatNumber(item.events)} responses
-                                            · {((item.totalTokens / chartTotalTokens) * 100).toFixed(1)}%
+                                            {formatNumber(item.sessions)}{" "}
+                                            sessions ·{" "}
+                                            {formatNumber(item.events)}{" "}
+                                            responses ·{" "}
+                                            {(
+                                                (item.totalTokens /
+                                                    chartTotalTokens) *
+                                                100
+                                            ).toFixed(1)}
+                                            %
                                         </div>
                                     </div>
                                     <div className="rank-value">

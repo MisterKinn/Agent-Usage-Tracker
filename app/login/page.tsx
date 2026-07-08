@@ -7,9 +7,10 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     signInWithPopup,
+    updateProfile,
     type User,
 } from "firebase/auth";
-import { ArrowRight, Github, Mail } from "lucide-react";
+import { ArrowRight, Github, Mail, UserRound } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 
@@ -37,6 +38,7 @@ function readableAuthError(error: unknown) {
 
 export default function LoginPage() {
     const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -59,7 +61,17 @@ export default function LoginPage() {
                 throw new Error("Firebase Auth 설정이 필요합니다.");
             }
             if (authMode === "signup") {
-                await createUserWithEmailAndPassword(auth, email, password);
+                const credential = await createUserWithEmailAndPassword(
+                    auth,
+                    email,
+                    password,
+                );
+
+                if (name.trim()) {
+                    await updateProfile(credential.user, {
+                        displayName: name.trim(),
+                    });
+                }
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
@@ -83,9 +95,6 @@ export default function LoginPage() {
     return (
         <main className="page auth-shell">
             <section className="auth-panel">
-                <Link className="back-link" href="/">
-                    Agent Usage Tracker
-                </Link>
                 <p className="eyebrow">Secure workspace</p>
                 <h1>{authMode === "signin" ? "로그인" : "회원가입"}</h1>
                 <p>
@@ -101,6 +110,19 @@ export default function LoginPage() {
                 ) : null}
 
                 <form className="auth-form" onSubmit={submitEmailAuth}>
+                    {authMode === "signup" ? (
+                        <label>
+                            <span>이름</span>
+                            <input
+                                className="input"
+                                placeholder="팀에서 표시할 이름"
+                                type="text"
+                                value={name}
+                                onChange={(event) => setName(event.target.value)}
+                                required
+                            />
+                        </label>
+                    ) : null}
                     <label>
                         <span>이메일</span>
                         <input
@@ -133,7 +155,11 @@ export default function LoginPage() {
                         </Link>
                     ) : (
                         <button className="button" type="submit">
-                            <Mail size={18} />
+                            {authMode === "signin" ? (
+                                <Mail size={18} />
+                            ) : (
+                                <UserRound size={18} />
+                            )}
                             {authMode === "signin" ? "로그인" : "계정 만들기"}
                         </button>
                     )}

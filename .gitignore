@@ -12,3 +12,4 @@ output/*.csv
 output/*.md
 src/__pycache__
 *.pyc
+Agent.md

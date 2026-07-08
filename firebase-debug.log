@@ -98,3 +98,548 @@ To learn about active projects for the CLI, visit https://firebase.google.com/do
 [info] ✔  Deploy complete! 
 [info] 
 [info] Project Console: https://console.firebase.google.com/project/agent-usage-tracker/overview
+[debug] [2026-07-08T08:43:03.452Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:43:03.454Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only firestore:rules
+[debug] [2026-07-08T08:43:03.454Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:43:03.454Z] Platform:      darwin
+[debug] [2026-07-08T08:43:03.454Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:43:03.454Z] Time:          Wed Jul 08 2026 17:43:03 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:43:03.454Z] ----------------------------------------------------------------------
+[debug] 
+[error] 
+[error] Error: No currently active project.
+To run this command, you need to specify a project. You have two options:
+- Run this command with --project <alias_or_project_id>.
+- Set an active project by running firebase use --add, then rerun this command.
+To list all the Firebase projects to which you have access, run firebase projects:list.
+To learn about active projects for the CLI, visit https://firebase.google.com/docs/cli#project_aliases
+
+
+[debug] [2026-07-08T08:43:10.607Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:43:10.609Z] Command:       /usr/local/bin/node /usr/local/bin/firebase deploy --only firestore:rules --project agent-usage-tracker
+[debug] [2026-07-08T08:43:10.609Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:43:10.609Z] Platform:      darwin
+[debug] [2026-07-08T08:43:10.609Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:43:10.609Z] Time:          Wed Jul 08 2026 17:43:10 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:43:10.609Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:43:11.410Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:43:11.411Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:43:11.411Z] [iam] checking project agent-usage-tracker for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-07-08T08:43:11.412Z] Checked if tokens are valid: false, expires at: 1783501050311
+[debug] [2026-07-08T08:43:11.412Z] Checked if tokens are valid: false, expires at: 1783501050311
+[debug] [2026-07-08T08:43:11.412Z] > refreshing access token with scopes: []
+[debug] [2026-07-08T08:43:11.413Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-08T08:43:11.414Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-08T08:43:11.768Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-07-08T08:43:11.769Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-08T08:43:11.780Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:43:11.780Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:43:11.780Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-07-08T08:43:12.322Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:43:12.322Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'agent-usage-tracker'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-07-08T08:43:12.328Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:12.328Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:12.328Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) [none]
+[debug] [2026-07-08T08:43:12.458Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) 200
+[debug] [2026-07-08T08:43:12.459Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default) {"name":"projects/agent-usage-tracker/databases/(default)","uid":"855c9cd0-da73-4310-ac97-694ecbf4e91f","createTime":"2026-07-08T07:39:28.446587Z","updateTime":"2026-07-08T07:39:28.446587Z","locationId":"asia-northeast3","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-07-08T07:43:12.543653Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"v","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"INnku/vXwpUDMOPxkd/UwpUD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-07-08T08:43:12.461Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:12.462Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:12.462Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test [none]
+[debug] [2026-07-08T08:43:12.462Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test [omitted]
+[debug] [2026-07-08T08:43:13.816Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test 200
+[debug] [2026-07-08T08:43:13.816Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker:test {}
+[info] ✔  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-07-08T08:43:13.818Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:13.819Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:13.820Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases pageSize=10&pageToken=
+[debug] [2026-07-08T08:43:14.949Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases 200
+[debug] [2026-07-08T08:43:14.949Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases {"releases":[{"name":"projects/agent-usage-tracker/releases/cloud.firestore","rulesetName":"projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c","createTime":"2026-07-08T07:39:31.485289Z","updateTime":"2026-07-08T07:57:38.516747Z"}]}
+[debug] [2026-07-08T08:43:14.949Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:14.949Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:14.949Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c [none]
+[debug] [2026-07-08T08:43:15.447Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c 200
+[debug] [2026-07-08T08:43:15.447Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets/c46ab70b-0c30-411d-b82b-3d140167f06c [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-07-08T08:43:15.448Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:15.448Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:15.448Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets [none]
+[debug] [2026-07-08T08:43:15.448Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets [omitted]
+[debug] [2026-07-08T08:43:16.594Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets 200
+[debug] [2026-07-08T08:43:16.594Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/rulesets {"name":"projects/agent-usage-tracker/rulesets/9450259b-236a-4891-98f0-56de1c857495","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function signedIn() {\n      return request.auth != null;\n    }\n\n    function writesOwnAuthUid() {\n      return signedIn()\n        && request.resource.data.authUid is string\n        && request.resource.data.authUid == request.auth.uid;\n    }\n\n    match /usageEvents/{eventId} {\n      allow read: if signedIn();\n      allow create, update: if writesOwnAuthUid();\n    }\n\n    match /usageDailySummaries/{summaryId} {\n      allow read: if signedIn();\n      allow create, update: if writesOwnAuthUid();\n    }\n\n    match /trackerClients/{clientId} {\n      allow read: if signedIn();\n      allow create, update: if signedIn() && clientId == request.auth.uid;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-07-08T08:43:16.558831Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-07-08T08:43:16.594Z] [rules] created ruleset projects/agent-usage-tracker/rulesets/9450259b-236a-4891-98f0-56de1c857495
+[debug] [2026-07-08T08:43:16.594Z] [rules] releasing cloud.firestore/(default) with ruleset projects/agent-usage-tracker/rulesets/9450259b-236a-4891-98f0-56de1c857495
+[debug] [2026-07-08T08:43:16.595Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:16.595Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:43:16.595Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) [none]
+[debug] [2026-07-08T08:43:16.595Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) {"release":{"name":"projects/agent-usage-tracker/releases/cloud.firestore/(default)","rulesetName":"projects/agent-usage-tracker/rulesets/9450259b-236a-4891-98f0-56de1c857495"}}
+[debug] [2026-07-08T08:43:17.662Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) 200
+[debug] [2026-07-08T08:43:17.662Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/agent-usage-tracker/releases/cloud.firestore/(default) {"name":"projects/agent-usage-tracker/releases/cloud.firestore","rulesetName":"projects/agent-usage-tracker/rulesets/9450259b-236a-4891-98f0-56de1c857495","createTime":"2026-07-08T07:39:31.485289Z","updateTime":"2026-07-08T08:43:17.626210Z"}
+[debug] [2026-07-08T08:43:17.663Z] [rules] updated release projects/agent-usage-tracker/releases/cloud.firestore
+[info] ✔  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] ✔  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/agent-usage-tracker/overview
+[debug] [2026-07-08T08:59:38.146Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:38.147Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-03:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:38.147Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:38.147Z] Platform:      darwin
+[debug] [2026-07-08T08:59:38.147Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:38.147Z] Time:          Wed Jul 08 2026 17:59:38 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:38.148Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:38.706Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:38.707Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:38.707Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:38.707Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:38.707Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:38.708Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:38.708Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:38.708Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:39.065Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:39.065Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:39.066Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.066Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.066Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:39.066Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:39.267Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:39.268Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:39.310773Z"}]
+[debug] [2026-07-08T08:59:39.268Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.268Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.268Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check [none]
+[debug] [2026-07-08T08:59:39.407Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check 200
+[debug] [2026-07-08T08:59:39.407Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check {}
+[debug] [2026-07-08T08:59:39.409Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.409Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:39.410Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:39.410Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:39.484Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:39.484Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-03:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:39.534358Z"}]
+[debug] [2026-07-08T08:59:39.928Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:39.929Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-04:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:39.929Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:39.930Z] Platform:      darwin
+[debug] [2026-07-08T08:59:39.930Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:39.930Z] Time:          Wed Jul 08 2026 17:59:39 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:39.930Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:40.222Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:40.222Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:40.223Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:40.223Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.223Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.224Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:40.224Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:40.224Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:40.475Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:40.476Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:40.476Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.476Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.477Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:40.477Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:40.563Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:40.563Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:40.613880Z"}]
+[debug] [2026-07-08T08:59:40.563Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.563Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.563Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check [none]
+[debug] [2026-07-08T08:59:40.598Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check 200
+[debug] [2026-07-08T08:59:40.598Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check {}
+[debug] [2026-07-08T08:59:40.599Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.599Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:40.600Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:40.600Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:40.677Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:40.677Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-04:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:40.727892Z"}]
+[debug] [2026-07-08T08:59:41.048Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:41.049Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-05:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:41.049Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:41.049Z] Platform:      darwin
+[debug] [2026-07-08T08:59:41.050Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:41.050Z] Time:          Wed Jul 08 2026 17:59:41 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:41.050Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:41.335Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:41.336Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:41.336Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:41.336Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.336Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.337Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:41.337Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:41.337Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:41.578Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:41.579Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:41.580Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.580Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.580Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:41.580Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:41.651Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:41.651Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:41.709935Z"}]
+[debug] [2026-07-08T08:59:41.652Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.652Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.652Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check [none]
+[debug] [2026-07-08T08:59:41.711Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check 200
+[debug] [2026-07-08T08:59:41.711Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check {}
+[debug] [2026-07-08T08:59:41.713Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.713Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:41.713Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:41.713Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:41.763Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:41.763Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-05:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:41.793040Z"}]
+[debug] [2026-07-08T08:59:42.123Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:42.124Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-06:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:42.125Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:42.125Z] Platform:      darwin
+[debug] [2026-07-08T08:59:42.125Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:42.125Z] Time:          Wed Jul 08 2026 17:59:42 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:42.125Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:42.407Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:42.407Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:42.407Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:42.408Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.408Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.408Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:42.408Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:42.409Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:42.725Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:42.725Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:42.725Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.725Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.726Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:42.726Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:42.798Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:42.798Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:42.857380Z"}]
+[debug] [2026-07-08T08:59:42.799Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.799Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.799Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check [none]
+[debug] [2026-07-08T08:59:42.871Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check 200
+[debug] [2026-07-08T08:59:42.871Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check {}
+[debug] [2026-07-08T08:59:42.873Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.873Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:42.873Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:42.873Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:42.947Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:42.947Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-06:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:42.997552Z"}]
+[debug] [2026-07-08T08:59:43.412Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:43.413Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-07:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:43.413Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:43.414Z] Platform:      darwin
+[debug] [2026-07-08T08:59:43.414Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:43.414Z] Time:          Wed Jul 08 2026 17:59:43 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:43.414Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:43.698Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:43.698Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:43.698Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:43.699Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:43.699Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:43.700Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:43.700Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:43.700Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:43.934Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:43.934Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:43.935Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:43.935Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:43.936Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:43.936Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:44.008Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:44.009Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:44.065401Z"}]
+[debug] [2026-07-08T08:59:44.009Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.009Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.009Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check [none]
+[debug] [2026-07-08T08:59:44.126Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check 200
+[debug] [2026-07-08T08:59:44.126Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check {}
+[debug] [2026-07-08T08:59:44.128Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.128Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.128Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:44.128Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:44.148Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:44.148Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-07:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:44.205459Z"}]
+[debug] [2026-07-08T08:59:44.534Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:44.535Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-08:claude:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:44.535Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:44.535Z] Platform:      darwin
+[debug] [2026-07-08T08:59:44.535Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:44.535Z] Time:          Wed Jul 08 2026 17:59:44 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:44.535Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:44.815Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:44.815Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:44.815Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:44.816Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.816Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:44.816Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:44.816Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:44.817Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:45.065Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:45.065Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:45.066Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.066Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.066Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:45.066Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:45.235Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:45.236Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:45.295245Z"}]
+[debug] [2026-07-08T08:59:45.236Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.236Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.236Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check [none]
+[debug] [2026-07-08T08:59:45.309Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check 200
+[debug] [2026-07-08T08:59:45.309Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check {}
+[debug] [2026-07-08T08:59:45.311Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.311Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:45.311Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:45.311Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:45.352Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:45.352Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:claude:quota-check:runQuery [{"readTime":"2026-07-08T08:59:45.392785Z"}]
+[debug] [2026-07-08T08:59:45.764Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:45.765Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-08:codex:quota-check --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:45.765Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:45.765Z] Platform:      darwin
+[debug] [2026-07-08T08:59:45.765Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:45.765Z] Time:          Wed Jul 08 2026 17:59:45 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:45.765Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:46.049Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:46.049Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:46.049Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:46.050Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.050Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.051Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:46.051Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:46.051Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:46.286Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:46.286Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:46.288Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.288Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.288Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:46.288Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:46.356Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:46.356Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery [{"readTime":"2026-07-08T08:59:46.415228Z"}]
+[debug] [2026-07-08T08:59:46.357Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.357Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.357Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check [none]
+[debug] [2026-07-08T08:59:46.390Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check 200
+[debug] [2026-07-08T08:59:46.390Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check {}
+[debug] [2026-07-08T08:59:46.391Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.391Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:46.392Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery [none]
+[debug] [2026-07-08T08:59:46.392Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:46.414Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery 200
+[debug] [2026-07-08T08:59:46.415Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:quota-check:runQuery [{"readTime":"2026-07-08T08:59:46.467289Z"}]
+[debug] [2026-07-08T08:59:46.793Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:46.794Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete usageDailySummaries/2026-07-08:codex:debug-user --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:46.794Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:46.794Z] Platform:      darwin
+[debug] [2026-07-08T08:59:46.794Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:46.794Z] Time:          Wed Jul 08 2026 17:59:46 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:46.795Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:47.077Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:47.078Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:47.078Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:47.079Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.079Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.079Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:47.079Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:47.079Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:47.324Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:47.324Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:47.325Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.325Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.325Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery [none]
+[debug] [2026-07-08T08:59:47.325Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:47.399Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery 200
+[debug] [2026-07-08T08:59:47.400Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery [{"readTime":"2026-07-08T08:59:47.458772Z"}]
+[debug] [2026-07-08T08:59:47.400Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.400Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.400Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user [none]
+[debug] [2026-07-08T08:59:47.433Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user 200
+[debug] [2026-07-08T08:59:47.433Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user {}
+[debug] [2026-07-08T08:59:47.435Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.435Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:47.435Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery [none]
+[debug] [2026-07-08T08:59:47.435Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:47.458Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery 200
+[debug] [2026-07-08T08:59:47.459Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/usageDailySummaries/2026-07-08:codex:debug-user:runQuery [{"readTime":"2026-07-08T08:59:47.515623Z"}]
+[debug] [2026-07-08T08:59:47.845Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:47.846Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72 --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:47.846Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:47.846Z] Platform:      darwin
+[debug] [2026-07-08T08:59:47.846Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:47.846Z] Time:          Wed Jul 08 2026 17:59:47 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:47.846Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:48.136Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:48.136Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:48.136Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:48.137Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.137Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.138Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:48.138Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:48.138Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:48.376Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:48.376Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:48.377Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.377Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.377Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery [none]
+[debug] [2026-07-08T08:59:48.377Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:48.444Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery 200
+[debug] [2026-07-08T08:59:48.444Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery [{"readTime":"2026-07-08T08:59:48.503465Z"}]
+[debug] [2026-07-08T08:59:48.444Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.444Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.445Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72 [none]
+[debug] [2026-07-08T08:59:48.521Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72 200
+[debug] [2026-07-08T08:59:48.521Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72 {}
+[debug] [2026-07-08T08:59:48.523Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.524Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:48.524Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery [none]
+[debug] [2026-07-08T08:59:48.524Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:48.550Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery 200
+[debug] [2026-07-08T08:59:48.550Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/3f3mrfgZAlMfr3lgnPlDWvjhfG72:runQuery [{"readTime":"2026-07-08T08:59:48.599644Z"}]
+[debug] [2026-07-08T08:59:48.978Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:48.979Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2 --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:48.979Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:48.979Z] Platform:      darwin
+[debug] [2026-07-08T08:59:48.979Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:48.979Z] Time:          Wed Jul 08 2026 17:59:48 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:48.979Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:49.385Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:49.385Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:49.385Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:49.386Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.386Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.386Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:49.387Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:49.387Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:49.626Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:49.626Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:49.627Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.627Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.627Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery [none]
+[debug] [2026-07-08T08:59:49.628Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:49.699Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery 200
+[debug] [2026-07-08T08:59:49.699Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery [{"readTime":"2026-07-08T08:59:49.758115Z"}]
+[debug] [2026-07-08T08:59:49.699Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.699Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.699Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2 [none]
+[debug] [2026-07-08T08:59:49.739Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2 200
+[debug] [2026-07-08T08:59:49.739Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2 {}
+[debug] [2026-07-08T08:59:49.741Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.741Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:49.741Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery [none]
+[debug] [2026-07-08T08:59:49.741Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:49.760Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery 200
+[debug] [2026-07-08T08:59:49.760Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/CK4KytPgYCPVBmyb8NpxFrYVwND2:runQuery [{"readTime":"2026-07-08T08:59:49.817366Z"}]
+[debug] [2026-07-08T08:59:50.228Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:50.229Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2 --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:50.229Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:50.229Z] Platform:      darwin
+[debug] [2026-07-08T08:59:50.229Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:50.229Z] Time:          Wed Jul 08 2026 17:59:50 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:50.230Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:50.498Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:50.498Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:50.498Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:50.499Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.499Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.500Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:50.500Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:50.500Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:50.748Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:50.749Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:50.750Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.750Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.751Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery [none]
+[debug] [2026-07-08T08:59:50.751Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:50.828Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery 200
+[debug] [2026-07-08T08:59:50.828Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery [{"readTime":"2026-07-08T08:59:50.883555Z"}]
+[debug] [2026-07-08T08:59:50.829Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.829Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.829Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2 [none]
+[debug] [2026-07-08T08:59:50.942Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2 200
+[debug] [2026-07-08T08:59:50.943Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2 {}
+[debug] [2026-07-08T08:59:50.945Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.946Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:50.946Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery [none]
+[debug] [2026-07-08T08:59:50.946Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:50.964Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery 200
+[debug] [2026-07-08T08:59:50.964Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/JQfPjYaG23PpH1q5g41pp7Lr1Xj2:runQuery [{"readTime":"2026-07-08T08:59:51.022709Z"}]
+[debug] [2026-07-08T08:59:51.356Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:51.357Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2 --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:51.357Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:51.357Z] Platform:      darwin
+[debug] [2026-07-08T08:59:51.357Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:51.357Z] Time:          Wed Jul 08 2026 17:59:51 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:51.357Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:51.630Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:51.630Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:51.630Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:51.631Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:51.631Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:51.632Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:51.632Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:51.632Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:51.869Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:51.870Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:51.872Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:51.872Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:51.872Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery [none]
+[debug] [2026-07-08T08:59:51.872Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:52.018Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery 200
+[debug] [2026-07-08T08:59:52.018Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery [{"readTime":"2026-07-08T08:59:52.071383Z"}]
+[debug] [2026-07-08T08:59:52.019Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.019Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.019Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2 [none]
+[debug] [2026-07-08T08:59:52.048Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2 200
+[debug] [2026-07-08T08:59:52.048Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2 {}
+[debug] [2026-07-08T08:59:52.051Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.051Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.051Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery [none]
+[debug] [2026-07-08T08:59:52.051Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:52.069Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery 200
+[debug] [2026-07-08T08:59:52.069Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/h91Lc8Drn8Q4y1vfdCh70XYCkos2:runQuery [{"readTime":"2026-07-08T08:59:52.127078Z"}]
+[debug] [2026-07-08T08:59:52.449Z] ----------------------------------------------------------------------
+[debug] [2026-07-08T08:59:52.450Z] Command:       /usr/local/bin/node /usr/local/bin/firebase firestore:delete trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2 --project agent-usage-tracker --database (default) --force
+[debug] [2026-07-08T08:59:52.451Z] CLI Version:   15.11.0
+[debug] [2026-07-08T08:59:52.451Z] Platform:      darwin
+[debug] [2026-07-08T08:59:52.451Z] Node Version:  v20.19.6
+[debug] [2026-07-08T08:59:52.451Z] Time:          Wed Jul 08 2026 17:59:52 GMT+0900 (Korean Standard Time)
+[debug] [2026-07-08T08:59:52.451Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-08T08:59:52.739Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-08T08:59:52.740Z] > authorizing via signed-in user (ksy535760@gmail.com)
+[debug] [2026-07-08T08:59:52.740Z] [iam] checking project agent-usage-tracker for permissions ["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]
+[debug] [2026-07-08T08:59:52.740Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.741Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:52.741Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions [none]
+[debug] [2026-07-08T08:59:52.741Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions  x-goog-user-project=agent-usage-tracker
+[debug] [2026-07-08T08:59:52.741Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:53.047Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions 200
+[debug] [2026-07-08T08:59:53.048Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/agent-usage-tracker:testIamPermissions {"permissions":["datastore.entities.delete","datastore.entities.list","firebase.projects.get"]}
+[debug] [2026-07-08T08:59:53.049Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.049Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.050Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery [none]
+[debug] [2026-07-08T08:59:53.050Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery {"structuredQuery":{"limit":1,"from":[{"allDescendants":true}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:53.126Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery 200
+[debug] [2026-07-08T08:59:53.126Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery [{"readTime":"2026-07-08T08:59:53.179996Z"}]
+[debug] [2026-07-08T08:59:53.127Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.127Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.127Z] >>> [apiv2][query] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2 [none]
+[debug] [2026-07-08T08:59:53.162Z] <<< [apiv2][status] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2 200
+[debug] [2026-07-08T08:59:53.162Z] <<< [apiv2][body] DELETE https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2 {}
+[debug] [2026-07-08T08:59:53.165Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.166Z] Checked if tokens are valid: true, expires at: 1783503790769
+[debug] [2026-07-08T08:59:53.166Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery [none]
+[debug] [2026-07-08T08:59:53.166Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery {"structuredQuery":{"limit":7500,"from":[{"allDescendants":false}],"select":{"fields":[{"fieldPath":"__name__"}]},"orderBy":[{"field":{"fieldPath":"__name__"}}]}}
+[debug] [2026-07-08T08:59:53.185Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery 200
+[debug] [2026-07-08T08:59:53.185Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/agent-usage-tracker/databases/(default)/documents/trackerClients/mDca4CAA4bgV7LaM7ce1LfcXFeX2:runQuery [{"readTime":"2026-07-08T08:59:53.244094Z"}]

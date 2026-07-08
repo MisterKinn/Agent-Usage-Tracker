@@ -24,7 +24,9 @@ export function SiteNav() {
                 </Link>
                 <div className="nav-links">
                     <Link
-                        className={isActive(pathname, "/dashboard") ? "active" : ""}
+                        className={
+                            isActive(pathname, "/dashboard") ? "active" : ""
+                        }
                         href="/dashboard"
                     >
                         대시보드
@@ -36,13 +38,17 @@ export function SiteNav() {
                         설명서
                     </Link>
                     <Link
-                        className={isActive(pathname, "/account") ? "active" : ""}
+                        className={
+                            isActive(pathname, "/account") ? "active" : ""
+                        }
                         href="/account"
                     >
                         계정
                     </Link>
                     <Link
-                        className={isActive(pathname, "/contact") ? "active" : ""}
+                        className={
+                            isActive(pathname, "/contact") ? "active" : ""
+                        }
                         href="/contact"
                     >
                         문의
