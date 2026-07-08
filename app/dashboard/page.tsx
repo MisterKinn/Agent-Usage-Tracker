@@ -37,6 +37,7 @@ import {
 import styles from "./trend-chart.module.css";
 
 const PRODUCTION_URL = "https://agent-usage-tracker.vercel.app";
+const TREND_COLORS = ["#2f7df6", "#ff9f0a", "#7dd3fc", "#8fd7a7", "#f472b6"];
 
 type OsKind = "windows" | "macos" | "unknown";
 
@@ -201,6 +202,41 @@ export default function DashboardPage() {
             ),
         ),
     );
+    const chartWidth = 920;
+    const chartHeight = 280;
+    const chartPaddingX = 28;
+    const chartPaddingTop = 18;
+    const chartPaddingBottom = 54;
+    const plotWidth = chartWidth - chartPaddingX * 2;
+    const plotHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
+    const xDenominator = Math.max(dateKeys.length - 1, 1);
+    const trendSeries = trendOwners.map((owner, ownerIndex) => {
+        const values = dateKeys.map(
+            (dateKey) => trendMatrix.get(`${owner.ownerName}::${dateKey}`) ?? 0,
+        );
+        const points = values.map((tokens, index) => {
+            const dateKey = dateKeys[index] ?? "";
+            const x = chartPaddingX + (plotWidth * index) / xDenominator;
+            const y =
+                chartPaddingTop +
+                plotHeight -
+                (tokens / trendMaxTokens) * plotHeight;
+            return { x, y, tokens, dateKey };
+        });
+
+        return {
+            ownerName: owner.ownerName,
+            totalTokens: owner.totalTokens,
+            color: TREND_COLORS[ownerIndex % TREND_COLORS.length],
+            values,
+            points,
+            polyline: points.map((point) => `${point.x},${point.y}`).join(" "),
+        };
+    });
+    const yGridValues = [1, 0.5, 0].map((ratio) => ({
+        value: Math.round(trendMaxTokens * ratio),
+        y: chartPaddingTop + plotHeight - plotHeight * ratio,
+    }));
 
     async function copyCommand(kind: "install" | "rerun") {
         const value = kind === "install" ? install : rerun;
@@ -390,42 +426,88 @@ export default function DashboardPage() {
                     </div>
                     {trendOwners.length && dateKeys.length ? (
                         <div className={styles.trendChart} aria-label="유저별 최근 7일 토큰 추이">
-                            <div className={styles.trendAxis}>
-                                <span>0</span>
-                                <span>{formatNumber(Math.round(trendMaxTokens / 2))}</span>
-                                <span>{formatNumber(trendMaxTokens)}</span>
+                            <div className={styles.trendLegend}>
+                                {trendSeries.map((series) => (
+                                    <div className={styles.legendItem} key={series.ownerName}>
+                                        <span
+                                            className={styles.legendDot}
+                                            style={{ backgroundColor: series.color }}
+                                        />
+                                        <strong>{series.ownerName}</strong>
+                                        <span>{formatNumber(series.totalTokens)}</span>
+                                    </div>
+                                ))}
                             </div>
-                            {trendOwners.map((owner) => (
-                                <div className={styles.trendRow} key={owner.ownerName}>
-                                    <div className={styles.trendOwner}>
-                                        <strong>{owner.ownerName}</strong>
-                                        <span>{formatNumber(owner.totalTokens)} tokens</span>
-                                    </div>
-                                    <div className={styles.trendBars}>
-                                        {dateKeys.map((dateKey, index) => {
-                                            const tokens =
-                                                trendMatrix.get(
-                                                    `${owner.ownerName}::${dateKey}`,
-                                                ) ?? 0;
-                                            const height = Math.max(
-                                                (tokens / trendMaxTokens) * 100,
-                                                tokens > 0 ? 10 : 0,
-                                            );
-
-                                            return (
-                                                <div className={styles.trendBarSlot} key={dateKey}>
-                                                    <div
-                                                        className={`${styles.trendBar} ${styles[`tone${(index % 5) + 1}`]}`}
-                                                        style={{ height: `${height}%` }}
-                                                        title={`${owner.ownerName} · ${dateKey} · ${formatNumber(tokens)} tokens`}
-                                                    />
-                                                    <span>{formatDateKey(dateKey)}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                            <div className={styles.trendCanvas}>
+                                <div className={styles.trendAxis}>
+                                    {yGridValues.map((tick) => (
+                                        <span
+                                            className={styles.axisLabel}
+                                            key={tick.value}
+                                            style={{ top: `${tick.y}px` }}
+                                        >
+                                            {formatNumber(tick.value)}
+                                        </span>
+                                    ))}
                                 </div>
-                            ))}
+                                <svg
+                                    className={styles.trendSvg}
+                                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                                    role="img"
+                                    aria-label="사용자별 일별 active token line chart"
+                                >
+                                    {yGridValues.map((tick) => (
+                                        <line
+                                            key={tick.value}
+                                            className={styles.gridLine}
+                                            x1={chartPaddingX}
+                                            x2={chartWidth - chartPaddingX}
+                                            y1={tick.y}
+                                            y2={tick.y}
+                                        />
+                                    ))}
+                                    {trendSeries.map((series) => (
+                                        <g key={series.ownerName}>
+                                            <polyline
+                                                className={styles.lineShadow}
+                                                points={series.polyline}
+                                                style={{ stroke: series.color }}
+                                            />
+                                            <polyline
+                                                className={styles.linePath}
+                                                points={series.polyline}
+                                                style={{ stroke: series.color }}
+                                            />
+                                            {series.points.map((point) => (
+                                                <g key={`${series.ownerName}-${point.dateKey}`}>
+                                                    <circle
+                                                        className={styles.pointGlow}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        r="11"
+                                                        style={{ fill: series.color }}
+                                                    />
+                                                    <circle
+                                                        className={styles.point}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        r="7"
+                                                        style={{ fill: series.color }}
+                                                    />
+                                                    <title>
+                                                        {`${series.ownerName} · ${point.dateKey} · ${formatNumber(point.tokens)} tokens`}
+                                                    </title>
+                                                </g>
+                                            ))}
+                                        </g>
+                                    ))}
+                                </svg>
+                                <div className={styles.dateAxis}>
+                                    {dateKeys.map((dateKey) => (
+                                        <span key={dateKey}>{formatDateKey(dateKey)}</span>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="empty">
