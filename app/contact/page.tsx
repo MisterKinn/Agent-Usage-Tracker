@@ -1,10 +1,6 @@
 "use client";
 
-import {
-    addDoc,
-    collection,
-    serverTimestamp,
-} from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import {
     LifeBuoy,
     Mail,
@@ -51,7 +47,9 @@ export default function ContactPage() {
         setSubmitting(true);
 
         try {
-            const environment = detectVisitorEnvironment(window.navigator.userAgent);
+            const environment = detectVisitorEnvironment(
+                window.navigator.userAgent,
+            );
             const docRef = await addDoc(collection(db, "contactMessages"), {
                 authEmail: user.email ?? "",
                 authUid: user.uid,
@@ -86,7 +84,7 @@ export default function ContactPage() {
 
             setSubject("");
             setMessage("");
-            setStatus("문의가 저장되었습니다. 어드민 페이지와 이메일로 확인할 수 있습니다.");
+            setStatus("문의가 저장되었습니다.");
         } catch (nextError) {
             const message =
                 nextError instanceof Error
@@ -99,11 +97,14 @@ export default function ContactPage() {
     }
 
     return (
-        <main className={`page narrow-page ${styles.contactLayout}`}>
+        <main className={`page ${styles.contactLayout}`}>
             <section className="section-heading">
                 <p className="eyebrow">Contact</p>
                 <h1>문의</h1>
-                <p>설치, 로그인, 추적 누락, Firebase 연동 문제를 바로 접수할 수 있습니다.</p>
+                <p>
+                    설치, 로그인, 추적 누락, Firebase 연동 문제를 바로 접수할 수
+                    있습니다.
+                </p>
             </section>
 
             <section className={styles.contactShell}>
@@ -133,7 +134,9 @@ export default function ContactPage() {
                                     className="input"
                                     type="text"
                                     value={subject}
-                                    onChange={(event) => setSubject(event.target.value)}
+                                    onChange={(event) =>
+                                        setSubject(event.target.value)
+                                    }
                                     placeholder="예: Claude Code 로그가 안 잡혀요"
                                     required
                                 />
@@ -143,56 +146,35 @@ export default function ContactPage() {
                                 <textarea
                                     className={styles.textArea}
                                     value={message}
-                                    onChange={(event) => setMessage(event.target.value)}
+                                    onChange={(event) =>
+                                        setMessage(event.target.value)
+                                    }
                                     placeholder="문제 상황, 실행 결과, 어떤 OS인지 자세히 적어 주세요."
                                     required
                                 />
                             </label>
-                            <p className={styles.helper}>
-                                현재 로그인 계정: {user.email ?? "unknown"}
-                            </p>
-                            {error ? <div className="error">{error}</div> : null}
-                            {status ? <div className="notice">{status}</div> : null}
-                            <button className="button" type="submit" disabled={submitting}>
+                            <div className={styles.accountBadge}>
+                                <span className={styles.accountLabel}>
+                                    현재 로그인 계정
+                                </span>
+                                <strong>{user.email ?? "unknown"}</strong>
+                            </div>
+                            {error ? (
+                                <div className="error">{error}</div>
+                            ) : null}
+                            {status ? (
+                                <div className="notice">{status}</div>
+                            ) : null}
+                            <button
+                                className="button"
+                                type="submit"
+                                disabled={submitting}
+                            >
                                 <Send size={18} />
                                 {submitting ? "보내는 중..." : "문의 보내기"}
                             </button>
                         </form>
                     )}
-                </article>
-
-                <article className={`feature-card ${styles.contactPanel}`}>
-                    <p className="eyebrow">What to include</p>
-                    <div className={styles.metaList}>
-                        <div className={styles.metaItem}>
-                            <MessageSquareText size={20} />
-                            <div>
-                                <h3>문제 상황</h3>
-                                <p>언제부터, 어떤 페이지나 명령어에서 문제가 생겼는지 적어 주세요.</p>
-                            </div>
-                        </div>
-                        <div className={styles.metaItem}>
-                            <Terminal size={20} />
-                            <div>
-                                <h3>설치 명령</h3>
-                                <p>{INSTALL_COMMAND}</p>
-                            </div>
-                        </div>
-                        <div className={styles.metaItem}>
-                            <Mail size={20} />
-                            <div>
-                                <h3>알림 방식</h3>
-                                <p>문의가 들어오면 어드민 페이지에 저장되고 관리자 이메일로도 알림이 갑니다.</p>
-                            </div>
-                        </div>
-                        <div className={styles.metaItem}>
-                            <LifeBuoy size={20} />
-                            <div>
-                                <h3>우선 지원 범위</h3>
-                                <p>로그인, Firebase 연결, usage tracking, 워처 실행 문제를 우선 확인합니다.</p>
-                            </div>
-                        </div>
-                    </div>
                 </article>
             </section>
         </main>
