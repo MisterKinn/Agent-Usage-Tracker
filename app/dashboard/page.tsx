@@ -34,6 +34,7 @@ import {
     toDate,
     type UsageSummary,
 } from "@/lib/usage";
+import styles from "./trend-chart.module.css";
 
 const PRODUCTION_URL = "https://agent-usage-tracker.vercel.app";
 
@@ -80,6 +81,15 @@ function osLabel(os: OsKind) {
         return "macOS";
     }
     return "Python";
+}
+
+function formatDateKey(dateKey: string) {
+    if (!dateKey || !dateKey.includes("-")) {
+        return dateKey || "-";
+    }
+
+    const [, month, day] = dateKey.split("-");
+    return `${month}.${day}`;
 }
 
 function mapSummary(id: string, data: DocumentData): UsageSummary {
@@ -162,6 +172,35 @@ export default function DashboardPage() {
     const rerun = rerunCommand(os);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
+    const dateKeys = Array.from(
+        new Set(summaries.map((item) => item.dateKey).filter(Boolean)),
+    )
+        .sort()
+        .slice(-7);
+    const trendOwners = summary.slice(0, 5);
+    const trendMatrix = new Map<string, number>();
+
+    for (const item of summaries) {
+        if (!item.dateKey) {
+            continue;
+        }
+
+        const trendKey = `${item.ownerName}::${item.dateKey}`;
+        trendMatrix.set(
+            trendKey,
+            (trendMatrix.get(trendKey) ?? 0) + activeTokenCount(item),
+        );
+    }
+
+    const trendMaxTokens = Math.max(
+        1,
+        ...trendOwners.flatMap((owner) =>
+            dateKeys.map(
+                (dateKey) =>
+                    trendMatrix.get(`${owner.ownerName}::${dateKey}`) ?? 0,
+            ),
+        ),
+    );
 
     async function copyCommand(kind: "install" | "rerun") {
         const value = kind === "install" ? install : rerun;
@@ -334,6 +373,65 @@ export default function DashboardPage() {
                             ? lastEventDate.toLocaleDateString("ko-KR")
                             : "아직 없음"}
                     </small>
+                </article>
+            </section>
+
+            <section className={styles.trendGrid}>
+                <article className={`panel ${styles.trendPanel}`}>
+                    <div className="panel-header">
+                        <h2>
+                            <BarChart3 size={18} />
+                            유저별 최근 7일 토큰 추이
+                        </h2>
+                        <span className="live">
+                            <Activity size={14} />
+                            active only
+                        </span>
+                    </div>
+                    {trendOwners.length && dateKeys.length ? (
+                        <div className={styles.trendChart} aria-label="유저별 최근 7일 토큰 추이">
+                            <div className={styles.trendAxis}>
+                                <span>0</span>
+                                <span>{formatNumber(Math.round(trendMaxTokens / 2))}</span>
+                                <span>{formatNumber(trendMaxTokens)}</span>
+                            </div>
+                            {trendOwners.map((owner) => (
+                                <div className={styles.trendRow} key={owner.ownerName}>
+                                    <div className={styles.trendOwner}>
+                                        <strong>{owner.ownerName}</strong>
+                                        <span>{formatNumber(owner.totalTokens)} tokens</span>
+                                    </div>
+                                    <div className={styles.trendBars}>
+                                        {dateKeys.map((dateKey, index) => {
+                                            const tokens =
+                                                trendMatrix.get(
+                                                    `${owner.ownerName}::${dateKey}`,
+                                                ) ?? 0;
+                                            const height = Math.max(
+                                                (tokens / trendMaxTokens) * 100,
+                                                tokens > 0 ? 10 : 0,
+                                            );
+
+                                            return (
+                                                <div className={styles.trendBarSlot} key={dateKey}>
+                                                    <div
+                                                        className={`${styles.trendBar} ${styles[`tone${(index % 5) + 1}`]}`}
+                                                        style={{ height: `${height}%` }}
+                                                        title={`${owner.ownerName} · ${dateKey} · ${formatNumber(tokens)} tokens`}
+                                                    />
+                                                    <span>{formatDateKey(dateKey)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="empty">
+                            최근 일자 집계가 쌓이면 사용자별 추이 그래프가 나타납니다.
+                        </div>
+                    )}
                 </article>
             </section>
 

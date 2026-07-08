@@ -1,0 +1,123 @@
+.trendGrid {
+    display: grid;
+    margin-bottom: 14px;
+}
+
+.trendPanel {
+    padding: 20px;
+}
+
+.trendChart {
+    display: grid;
+    gap: 18px;
+}
+
+.trendAxis {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    justify-content: end;
+    gap: 18px;
+    color: var(--muted-2);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.trendRow {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: end;
+}
+
+.trendOwner {
+    display: grid;
+    gap: 4px;
+}
+
+.trendOwner strong {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.trendOwner span {
+    color: var(--muted-2);
+    font-size: 12px;
+}
+
+.trendBars {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    align-items: end;
+    min-height: 184px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        rgba(0, 0, 0, 0.18);
+    background-position:
+        0 25%,
+        0 50%,
+        0 75%,
+        0 0;
+    background-size: 100% 100%;
+    padding: 16px 14px 12px;
+}
+
+.trendBarSlot {
+    display: grid;
+    gap: 8px;
+    align-items: end;
+    justify-items: center;
+    min-height: 154px;
+}
+
+.trendBarSlot span {
+    color: var(--muted-2);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.trendBar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 8px 8px 4px 4px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    transition: height 320ms ease;
+}
+
+.tone1 {
+    background: linear-gradient(180deg, #f5f5f5 0%, #7dd3fc 100%);
+}
+
+.tone2 {
+    background: linear-gradient(180deg, #d4ffd9 0%, #8fd7a7 100%);
+}
+
+.tone3 {
+    background: linear-gradient(180deg, #ffe8af 0%, #e4c56f 100%);
+}
+
+.tone4 {
+    background: linear-gradient(180deg, #ffd7cf 0%, #ff8a7a 100%);
+}
+
+.tone5 {
+    background: linear-gradient(180deg, #f0dfff 0%, #b899ff 100%);
+}
+
+@media (max-width: 680px) {
+    .trendRow {
+        grid-template-columns: 1fr;
+    }
+
+    .trendBars {
+        grid-template-columns: repeat(7, minmax(28px, 1fr));
+        overflow-x: auto;
+    }
+}
