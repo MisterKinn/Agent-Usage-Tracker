@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Terminal } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { auth } from "@/lib/firebase";
 
 function isActive(pathname: string, href: string) {
     if (href === "/") {
@@ -14,6 +17,17 @@ function isActive(pathname: string, href: string) {
 
 export function SiteNav() {
     const pathname = usePathname();
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        if (!auth) {
+            return;
+        }
+
+        return onAuthStateChanged(auth, setUser);
+    }, []);
+
+    const accountHref = user ? "/account" : "/login";
 
     return (
         <header className="site-nav-shell">
@@ -41,7 +55,7 @@ export function SiteNav() {
                         className={
                             isActive(pathname, "/account") ? "active" : ""
                         }
-                        href="/account"
+                        href={accountHref}
                     >
                         계정
                     </Link>
@@ -53,9 +67,11 @@ export function SiteNav() {
                     >
                         문의
                     </Link>
-                    <Link className="nav-action" href="/login">
-                        로그인
-                    </Link>
+                    {user ? null : (
+                        <Link className="nav-action" href="/login">
+                            로그인
+                        </Link>
+                    )}
                 </div>
             </nav>
         </header>

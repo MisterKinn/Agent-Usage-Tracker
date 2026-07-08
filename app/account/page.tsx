@@ -11,13 +11,8 @@ import {
     type User,
 } from "firebase/auth";
 import { FormEvent, useEffect, useState } from "react";
-import {
-    KeyRound,
-    LogOut,
-    Mail,
-    ShieldCheck,
-    UserRound,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { KeyRound, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 
 function readableAccountError(error: unknown) {
@@ -37,6 +32,7 @@ function readableAccountError(error: unknown) {
 }
 
 export default function AccountPage() {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [name, setName] = useState("");
@@ -61,7 +57,9 @@ export default function AccountPage() {
     }, []);
 
     const passwordProviderEnabled = Boolean(
-        user?.providerData.some((provider) => provider.providerId === "password"),
+        user?.providerData.some(
+            (provider) => provider.providerId === "password",
+        ),
     );
 
     async function submitProfile(event: FormEvent<HTMLFormElement>) {
@@ -114,6 +112,16 @@ export default function AccountPage() {
         }
     }
 
+    async function handleSignOut() {
+        if (!auth) {
+            router.push("/");
+            return;
+        }
+
+        await signOut(auth);
+        router.push("/");
+    }
+
     return (
         <main className="page narrow-page">
             <section className="section-heading">
@@ -123,21 +131,6 @@ export default function AccountPage() {
             </section>
 
             <section className="settings-list">
-                <article className="settings-row">
-                    <ShieldCheck size={22} />
-                    <div>
-                        <h2>인증 상태</h2>
-                        <p>
-                            {!hasFirebaseConfig()
-                                ? "Firebase 설정이 필요합니다."
-                                : !authReady
-                                  ? "확인 중..."
-                                  : user
-                                    ? "로그인됨"
-                                    : "로그인 필요"}
-                        </p>
-                    </div>
-                </article>
                 <article className="settings-row">
                     <Mail size={22} />
                     <div>
@@ -149,14 +142,10 @@ export default function AccountPage() {
                     <UserRound size={22} />
                     <div>
                         <h2>이름</h2>
-                        <p>{user?.displayName ?? "아직 설정된 이름이 없습니다."}</p>
-                    </div>
-                </article>
-                <article className="settings-row">
-                    <KeyRound size={22} />
-                    <div>
-                        <h2>접근</h2>
-                        <p>로그인한 계정은 실시간 사용량 대시보드에 접근할 수 있습니다.</p>
+                        <p>
+                            {user?.displayName ??
+                                "아직 설정된 이름이 없습니다."}
+                        </p>
                     </div>
                 </article>
             </section>
@@ -173,7 +162,9 @@ export default function AccountPage() {
                                     className="input"
                                     type="text"
                                     value={name}
-                                    onChange={(event) => setName(event.target.value)}
+                                    onChange={(event) =>
+                                        setName(event.target.value)
+                                    }
                                     required
                                 />
                             </label>
@@ -204,7 +195,9 @@ export default function AccountPage() {
                                         type="password"
                                         value={currentPassword}
                                         onChange={(event) =>
-                                            setCurrentPassword(event.target.value)
+                                            setCurrentPassword(
+                                                event.target.value,
+                                            )
                                         }
                                         required
                                     />
@@ -226,7 +219,9 @@ export default function AccountPage() {
                                     <div className="error">{passwordError}</div>
                                 ) : null}
                                 {passwordMessage ? (
-                                    <div className="notice">{passwordMessage}</div>
+                                    <div className="notice">
+                                        {passwordMessage}
+                                    </div>
                                 ) : null}
                                 <button className="button" type="submit">
                                     비밀번호 변경
@@ -234,8 +229,8 @@ export default function AccountPage() {
                             </form>
                         ) : (
                             <div className="notice">
-                                현재 계정은 Google 등 외부 로그인으로 연결되어 있어
-                                이메일 비밀번호 변경이 제공되지 않습니다.
+                                현재 계정은 Google 등 외부 로그인으로 연결되어
+                                있어 이메일 비밀번호 변경이 제공되지 않습니다.
                             </div>
                         )}
                     </article>
@@ -247,7 +242,7 @@ export default function AccountPage() {
                     <button
                         className="button secondary"
                         type="button"
-                        onClick={() => auth && signOut(auth)}
+                        onClick={handleSignOut}
                     >
                         <LogOut size={18} />
                         로그아웃
