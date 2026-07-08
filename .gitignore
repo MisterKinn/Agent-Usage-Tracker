@@ -13,3 +13,5 @@ output/*.md
 src/__pycache__
 *.pyc
 Agent.md
+.vercel
+.env*.local

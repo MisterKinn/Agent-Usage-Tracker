@@ -14,6 +14,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { syncUserProfile } from "@/lib/user-profile";
 
 function readableAccountError(error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -75,6 +76,7 @@ export default function AccountPage() {
             await updateProfile(user, {
                 displayName: name.trim(),
             });
+            await syncUserProfile(user);
             setProfileMessage("이름이 업데이트되었습니다.");
         } catch (error) {
             setProfileError(readableAccountError(error));
@@ -229,8 +231,9 @@ export default function AccountPage() {
                             </form>
                         ) : (
                             <div className="notice">
-                                현재 계정은 Google 등 외부 로그인으로 연결되어
-                                있어 이메일 비밀번호 변경이 제공되지 않습니다.
+                                현재 계정은 외부 로그인으로 연결되어 있어
+                                <br />
+                                비밀번호 변경이 제공되지 않습니다.
                             </div>
                         )}
                     </article>

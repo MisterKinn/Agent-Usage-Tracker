@@ -28,6 +28,10 @@ body {
     background-color: var(--bg);
 }
 
+nextjs-portal {
+    display: none;
+}
+
 body {
     margin: 0;
     background:
@@ -212,7 +216,7 @@ body.home-landing {
     margin: 0 0 10px;
     color: var(--muted);
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
 }
 
@@ -471,7 +475,8 @@ body.home-landing {
 
 .auth-panel h1 {
     margin-bottom: 10px;
-    font-size: 38px;
+    font-size: 40px;
+    font-weight: 900;
 }
 
 .auth-panel p,

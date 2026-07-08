@@ -18,6 +18,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as {
         authEmail?: string;
+        attachments?: Array<{ name?: string; url?: string }>;
         message?: string;
         messageId?: string;
         os?: string;
@@ -31,6 +32,20 @@ export async function POST(request: Request) {
     const os = body.os?.trim() || "unknown";
     const message = body.message?.trim() || "";
     const messageId = body.messageId?.trim() || "unknown";
+    const attachments = Array.isArray(body.attachments)
+        ? body.attachments.filter((item) => item?.name || item?.url)
+        : [];
+    const attachmentHtml = attachments.length
+        ? `<p><strong>첨부:</strong></p><ul>${attachments
+              .map((item) => {
+                  const name = item.name?.trim() || "attachment";
+                  const url = item.url?.trim() || "";
+                  return url
+                      ? `<li><a href="${url}">${name}</a></li>`
+                      : `<li>${name}</li>`;
+              })
+              .join("")}</ul>`
+        : "";
 
     const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -50,6 +65,7 @@ export async function POST(request: Request) {
                     <p><strong>환경:</strong> ${os}</p>
                     <p><strong>메시지 ID:</strong> ${messageId}</p>
                     <p><strong>제목:</strong> ${subject}</p>
+                    ${attachmentHtml}
                     <p><strong>내용:</strong></p>
                     <pre style="white-space:pre-wrap">${message}</pre>
                 </div>

@@ -11,6 +11,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
+import { syncUserProfile } from "@/lib/user-profile";
 import {
     detectVisitorEnvironment,
     makeDateKey,
@@ -33,6 +34,8 @@ export function VisitTracker() {
         if (!user || !db || !pathname) {
             return;
         }
+
+        void syncUserProfile(user);
 
         const dateKey = makeDateKey();
         const sessionKey = `visit:${user.uid}:${dateKey}:${pathname}`;

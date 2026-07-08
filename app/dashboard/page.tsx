@@ -70,6 +70,7 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
         dateKey: data.dateKey ?? "",
         agent: data.agent ?? "unknown",
         ownerName: data.ownerName ?? "unassigned",
+        ownerId: data.ownerId ?? "",
         authUid: data.authUid ?? "",
         authEmail: data.authEmail ?? "",
         events: Number(data.events ?? 0),
@@ -149,7 +150,8 @@ export default function DashboardPage() {
             continue;
         }
 
-        const trendKey = `${item.ownerName}::${item.dateKey}`;
+        const ownerKey = item.ownerId || item.ownerName;
+        const trendKey = `${ownerKey}::${item.dateKey}`;
         trendMatrix.set(
             trendKey,
             (trendMatrix.get(trendKey) ?? 0) + activeTokenCount(item),
@@ -161,7 +163,7 @@ export default function DashboardPage() {
         ...trendOwners.flatMap((owner) =>
             dateKeys.map(
                 (dateKey) =>
-                    trendMatrix.get(`${owner.ownerName}::${dateKey}`) ?? 0,
+                    trendMatrix.get(`${owner.ownerId || owner.ownerName}::${dateKey}`) ?? 0,
             ),
         ),
     );
@@ -175,7 +177,8 @@ export default function DashboardPage() {
     const xDenominator = Math.max(dateKeys.length - 1, 1);
     const trendSeries = trendOwners.map((owner, ownerIndex) => {
         const values = dateKeys.map(
-            (dateKey) => trendMatrix.get(`${owner.ownerName}::${dateKey}`) ?? 0,
+            (dateKey) =>
+                trendMatrix.get(`${owner.ownerId || owner.ownerName}::${dateKey}`) ?? 0,
         );
         const points = values.map((tokens, index) => {
             const dateKey = dateKeys[index] ?? "";

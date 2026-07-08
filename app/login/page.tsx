@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { syncUserProfile } from "@/lib/user-profile";
 import styles from "./login.module.css";
 
 function GoogleMark() {
@@ -80,6 +81,7 @@ export default function LoginPage() {
         return onAuthStateChanged(auth, (nextUser) => {
             setUser(nextUser);
             if (nextUser) {
+                void syncUserProfile(nextUser);
                 router.replace("/dashboard");
             }
         });
@@ -105,8 +107,14 @@ export default function LoginPage() {
                         displayName: name.trim(),
                     });
                 }
+                await syncUserProfile(credential.user);
             } else {
-                await signInWithEmailAndPassword(auth, email, password);
+                const credential = await signInWithEmailAndPassword(
+                    auth,
+                    email,
+                    password,
+                );
+                await syncUserProfile(credential.user);
             }
         } catch (authError) {
             setError(readableAuthError(authError));
@@ -119,7 +127,11 @@ export default function LoginPage() {
             if (!auth) {
                 throw new Error("Firebase Auth 설정이 필요합니다.");
             }
-            await signInWithPopup(auth, new GoogleAuthProvider());
+            const credential = await signInWithPopup(
+                auth,
+                new GoogleAuthProvider(),
+            );
+            await syncUserProfile(credential.user);
         } catch (authError) {
             setError(readableAuthError(authError));
         }

@@ -3,31 +3,18 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const MAC_COMMAND =
-    "/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3";
-const WINDOWS_COMMAND =
-    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))\"";
-
-type OsKind = "windows" | "macos";
-
-function detectOs(): OsKind {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const platform = navigator.platform.toLowerCase();
-
-    if (userAgent.includes("windows") || platform.includes("win")) {
-        return "windows";
-    }
-
-    return "macos";
-}
+import {
+    detectOsFromNavigator,
+    installCommandFor,
+    type OsKind,
+} from "@/lib/install-commands";
 
 export default function Home() {
     const [os, setOs] = useState<OsKind>("macos");
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        setOs(detectOs());
+        setOs(detectOsFromNavigator());
     }, []);
 
     useEffect(() => {
@@ -39,7 +26,7 @@ export default function Home() {
     }, []);
 
     const isWindows = os === "windows";
-    const command = isWindows ? WINDOWS_COMMAND : MAC_COMMAND;
+    const command = installCommandFor(os);
     const osLabel = isWindows ? "Windows" : "macOS / Linux";
     const title = isWindows ? "PowerShell 설치" : "터미널 설치";
 

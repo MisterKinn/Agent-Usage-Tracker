@@ -2,23 +2,39 @@
 
 import {
     collection,
+    limit,
     onSnapshot,
     orderBy,
     query,
     updateDoc,
     doc,
-    limit,
     type DocumentData,
 } from "firebase/firestore";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Shield, Waypoints, Mailbox, BarChart3 } from "lucide-react";
+import {
+    AlertTriangle,
+    BarChart3,
+    Mailbox,
+    PencilLine,
+    Shield,
+    Trash2,
+    UserCog,
+    Users,
+} from "lucide-react";
 import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
 import { isAdminEmail } from "@/lib/admin";
 import styles from "./admin.module.css";
 
 type ContactMessage = {
+    attachments?: Array<{
+        name: string;
+        path?: string;
+        size?: number;
+        type?: string;
+        url?: string;
+    }>;
     id: string;
     authEmail: string;
     authUid: string;
@@ -44,6 +60,27 @@ type VisitorInsight = {
     path: string;
 };
 
+type AuthUserItem = {
+    creationTime: string;
+    disabled: boolean;
+    displayName: string;
+    email: string;
+    lastSignInTime: string;
+    providerIds: string[];
+    uid: string;
+};
+
+type UsageOwnerSummary = {
+    id: string;
+    ownerId: string;
+    ownerName: string;
+    totalEvents: number;
+    totalSessions: number;
+    totalTokens: number;
+    agents: string[];
+    lastCompletedAt: Date | null;
+};
+
 function asDate(value: unknown) {
     if (!value) {
         return null;
@@ -62,6 +99,15 @@ function asDate(value: unknown) {
 
 function mapMessage(id: string, data: DocumentData): ContactMessage {
     return {
+        attachments: Array.isArray(data.attachments)
+            ? data.attachments.map((item: DocumentData) => ({
+                  name: item.name ?? "attachment",
+                  path: item.path ?? "",
+                  size: Number(item.size ?? 0),
+                  type: item.type ?? "",
+                  url: item.url ?? "",
+              }))
+            : [],
         id,
         authEmail: data.authEmail ?? "",
         authUid: data.authUid ?? "",
@@ -99,11 +145,62 @@ function summarizeCounts(values: string[]) {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
 }
 
+function summarizeTrackedOwners(items: DocumentData[]) {
+    const grouped = new Map<string, UsageOwnerSummary>();
+
+    for (const item of items) {
+        const ownerName = String(item.ownerName ?? "unknown");
+        const ownerId = String(item.ownerId ?? ownerName);
+        const key = ownerId || ownerName;
+        const lastCompletedAt = asDate(item.lastCompletedAt);
+        const agent = String(item.agent ?? "unknown");
+
+        const existing = grouped.get(key);
+        if (!existing) {
+            grouped.set(key, {
+                id: key,
+                ownerId,
+                ownerName,
+                totalEvents: Number(item.events ?? 0),
+                totalSessions: Number(item.sessions ?? 0),
+                totalTokens: Number(item.totalTokens ?? 0),
+                agents: [agent],
+                lastCompletedAt,
+            });
+            continue;
+        }
+
+        existing.totalEvents += Number(item.events ?? 0);
+        existing.totalSessions += Number(item.sessions ?? 0);
+        existing.totalTokens += Number(item.totalTokens ?? 0);
+        if (!existing.agents.includes(agent)) {
+            existing.agents.push(agent);
+        }
+        if (
+            lastCompletedAt &&
+            (!existing.lastCompletedAt ||
+                lastCompletedAt.getTime() > existing.lastCompletedAt.getTime())
+        ) {
+            existing.lastCompletedAt = lastCompletedAt;
+        }
+    }
+
+    return Array.from(grouped.values()).sort(
+        (a, b) => b.totalTokens - a.totalTokens,
+    );
+}
+
 export default function AdminPage() {
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [messages, setMessages] = useState<ContactMessage[]>([]);
     const [insights, setInsights] = useState<VisitorInsight[]>([]);
+    const [authUsers, setAuthUsers] = useState<AuthUserItem[]>([]);
+    const [authUsersError, setAuthUsersError] = useState("");
+    const [trackedOwners, setTrackedOwners] = useState<UsageOwnerSummary[]>([]);
+    const [busyKey, setBusyKey] = useState("");
+    const [actionMessage, setActionMessage] = useState("");
+    const [ownerDrafts, setOwnerDrafts] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (!auth) {
@@ -121,6 +218,7 @@ export default function AdminPage() {
         if (!db || !user || !isAdminEmail(user.email)) {
             setMessages([]);
             setInsights([]);
+            setTrackedOwners([]);
             return;
         }
 
@@ -131,7 +229,11 @@ export default function AdminPage() {
                 limit(100),
             ),
             (snapshot) =>
-                setMessages(snapshot.docs.map((item) => mapMessage(item.id, item.data()))),
+                setMessages(
+                    snapshot.docs.map((item) =>
+                        mapMessage(item.id, item.data()),
+                    ),
+                ),
         );
 
         const unsubscribeInsights = onSnapshot(
@@ -141,13 +243,87 @@ export default function AdminPage() {
                 limit(300),
             ),
             (snapshot) =>
-                setInsights(snapshot.docs.map((item) => mapInsight(item.id, item.data()))),
+                setInsights(
+                    snapshot.docs.map((item) =>
+                        mapInsight(item.id, item.data()),
+                    ),
+                ),
+        );
+
+        const unsubscribeUsage = onSnapshot(
+            query(
+                collection(db, "usageDailySummaries"),
+                orderBy("lastCompletedAt", "desc"),
+                limit(500),
+            ),
+            (snapshot) =>
+                setTrackedOwners(
+                    summarizeTrackedOwners(
+                        snapshot.docs.map((item) => item.data()),
+                    ),
+                ),
         );
 
         return () => {
             unsubscribeMessages();
             unsubscribeInsights();
+            unsubscribeUsage();
         };
+    }, [user]);
+
+    useEffect(() => {
+        setOwnerDrafts((current) => {
+            const next = { ...current };
+            for (const owner of trackedOwners) {
+                if (!(owner.ownerId in next)) {
+                    next[owner.ownerId] = owner.ownerName;
+                }
+            }
+            return next;
+        });
+    }, [trackedOwners]);
+
+    useEffect(() => {
+        async function loadAuthUsers() {
+            if (!user) {
+                setAuthUsers([]);
+                setAuthUsersError("");
+                return;
+            }
+
+            const token = await user.getIdToken();
+            const response = await fetch("/api/admin/auth-users", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const payload = (await response.json().catch(() => null)) as
+                    | { error?: string }
+                    | null;
+                throw new Error(
+                    payload?.error || "Failed to load Firebase Auth users.",
+                );
+            }
+
+            const payload = (await response.json()) as {
+                users: AuthUserItem[];
+            };
+            setAuthUsers(payload.users);
+            setAuthUsersError("");
+        }
+
+        if (user && isAdminEmail(user.email)) {
+            void loadAuthUsers().catch((error) => {
+                setAuthUsers([]);
+                setAuthUsersError(
+                    error instanceof Error
+                        ? error.message
+                        : "Firebase Auth 유저를 불러오지 못했습니다.",
+                );
+            });
+        }
     }, [user]);
 
     const osCounts = useMemo(
@@ -173,7 +349,38 @@ export default function AdminPage() {
     );
     const totalVisits = insights.reduce((sum, item) => sum + item.count, 0);
     const uniqueUsers = new Set(insights.map((item) => item.authUid)).size;
-    const openMessages = messages.filter((item) => item.status !== "resolved").length;
+    const openMessages = messages.filter(
+        (item) => item.status !== "resolved",
+    ).length;
+
+    async function adminRequest<T>(
+        url: string,
+        init?: RequestInit,
+    ): Promise<T> {
+        if (!user) {
+            throw new Error("로그인이 필요합니다.");
+        }
+
+        const token = await user.getIdToken();
+        const response = await fetch(url, {
+            ...init,
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+                ...(init?.headers ?? {}),
+            },
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+            | (T & { error?: string })
+            | null;
+
+        if (!response.ok) {
+            throw new Error(payload?.error || "관리자 요청에 실패했습니다.");
+        }
+
+        return payload as T;
+    }
 
     async function updateMessageStatus(id: string, status: string) {
         if (!db) {
@@ -181,6 +388,99 @@ export default function AdminPage() {
         }
 
         await updateDoc(doc(db, "contactMessages", id), { status });
+    }
+
+    async function deleteTrackedOwner(owner: UsageOwnerSummary) {
+        const targetLabel = owner.ownerName || owner.ownerId;
+        const confirmed = window.confirm(
+            `${targetLabel}의 토큰 사용량 데이터를 삭제할까요?\n대시보드 집계와 tracker client 기록이 함께 제거됩니다.`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setBusyKey(`owner-delete:${owner.id}`);
+        setActionMessage("");
+
+        try {
+            const payload = await adminRequest<{
+                deletedTracker: number;
+                deletedUsage: number;
+            }>("/api/admin/tracked-owners", {
+                method: "DELETE",
+                body: JSON.stringify({ ownerId: owner.ownerId }),
+            });
+
+            setActionMessage(
+                `${targetLabel} 정리 완료: usage ${payload.deletedUsage}건, tracker ${payload.deletedTracker}건`,
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
+    async function renameTrackedOwner(owner: UsageOwnerSummary) {
+        const nextName = ownerDrafts[owner.ownerId]?.trim() || "";
+        if (!nextName || nextName === owner.ownerName) {
+            return;
+        }
+
+        setBusyKey(`owner-rename:${owner.id}`);
+        setActionMessage("");
+
+        try {
+            const payload = await adminRequest<{
+                updatedTrackerDocs: number;
+                updatedUsageDocs: number;
+            }>("/api/admin/tracked-owners", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    ownerId: owner.ownerId,
+                    ownerName: nextName,
+                }),
+            });
+
+            setActionMessage(
+                `${owner.ownerName} 이름 변경 완료: ${nextName} · usage ${payload.updatedUsageDocs}건, tracker ${payload.updatedTrackerDocs}건`,
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
+    async function deleteAuthUser(authUser: AuthUserItem) {
+        const targetLabel = authUser.displayName || authUser.email || authUser.uid;
+        const confirmed = window.confirm(
+            `${targetLabel} Firebase Auth 계정을 삭제할까요?\n연결된 user profile, 방문 기록, 문의 기록도 함께 정리됩니다.`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setBusyKey(`auth:${authUser.uid}`);
+        setActionMessage("");
+
+        try {
+            const payload = await adminRequest<{
+                deletedMessages: number;
+                deletedProfiles: number;
+                deletedVisits: number;
+            }>("/api/admin/auth-users", {
+                method: "DELETE",
+                body: JSON.stringify({ uid: authUser.uid }),
+            });
+
+            setAuthUsers((current) =>
+                current.filter((item) => item.uid !== authUser.uid),
+            );
+            setActionMessage(
+                `${targetLabel} 삭제 완료: profiles ${payload.deletedProfiles}건, visits ${payload.deletedVisits}건, messages ${payload.deletedMessages}건`,
+            );
+        } finally {
+            setBusyKey("");
+        }
     }
 
     if (!hasFirebaseConfig()) {
@@ -231,7 +531,10 @@ export default function AdminPage() {
             <section className="section-heading">
                 <p className="eyebrow">Admin</p>
                 <h1>관리자</h1>
-                <p>문의 접수 현황과 방문 환경 인사이트를 한 곳에서 확인합니다.</p>
+                <p>
+                    Firebase Auth 유저, 트래킹 사용자 토큰 집계, 문의와 방문
+                    인사이트를 한 곳에서 관리합니다.
+                </p>
             </section>
 
             <section className={styles.metricGrid}>
@@ -255,9 +558,179 @@ export default function AdminPage() {
                     <strong>{uniqueUsers}</strong>
                     <small>방문한 고유 사용자</small>
                 </article>
+                <article className={`feature-card ${styles.metricCard}`}>
+                    <span>auth</span>
+                    <strong>{authUsers.length}</strong>
+                    <small>Firebase Auth 유저</small>
+                </article>
+                <article className={`feature-card ${styles.metricCard}`}>
+                    <span>tracked</span>
+                    <strong>{trackedOwners.length}</strong>
+                    <small>대시보드 트래킹 사용자</small>
+                </article>
             </section>
 
+            {actionMessage ? (
+                <section className={styles.flashNotice}>
+                    <AlertTriangle size={16} />
+                    <span>{actionMessage}</span>
+                </section>
+            ) : null}
+
             <section className={styles.adminGrid}>
+                <article className={`feature-card ${styles.panel}`}>
+                    <h2>
+                        <Users size={18} /> 토큰 사용량 관리
+                    </h2>
+                    <div className={styles.accountList}>
+                        {trackedOwners.length ? (
+                            trackedOwners.map((owner) => (
+                                <article
+                                    className={styles.accountItem}
+                                    key={owner.id}
+                                >
+                                    <div className={styles.accountMeta}>
+                                        <div>
+                                            <strong>
+                                                {owner.ownerName || "unknown"}
+                                            </strong>
+                                            <p>{owner.ownerId || "legacy-id"}</p>
+                                        </div>
+                                        <div className={styles.accountStats}>
+                                            <span>
+                                                {owner.totalTokens.toLocaleString()}{" "}
+                                                tokens
+                                            </span>
+                                            <span>
+                                                {owner.totalSessions} sessions ·{" "}
+                                                {owner.totalEvents} events
+                                            </span>
+                                            <span>{owner.agents.join(", ")}</span>
+                                        </div>
+                                        <div className={styles.inlineEditor}>
+                                            <input
+                                                className={`input ${styles.inlineInput}`}
+                                                type="text"
+                                                value={
+                                                    ownerDrafts[owner.ownerId] ??
+                                                    owner.ownerName
+                                                }
+                                                onChange={(event) =>
+                                                    setOwnerDrafts((current) => ({
+                                                        ...current,
+                                                        [owner.ownerId]:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                            />
+                                            <button
+                                                className="button secondary"
+                                                type="button"
+                                                disabled={
+                                                    busyKey ===
+                                                    `owner-rename:${owner.id}`
+                                                }
+                                                onClick={() =>
+                                                    renameTrackedOwner(owner)
+                                                }
+                                            >
+                                                <PencilLine size={16} />
+                                                {busyKey ===
+                                                `owner-rename:${owner.id}`
+                                                    ? "저장 중..."
+                                                    : "이름 저장"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="button secondary"
+                                        type="button"
+                                        disabled={
+                                            busyKey ===
+                                            `owner-delete:${owner.id}`
+                                        }
+                                        onClick={() => deleteTrackedOwner(owner)}
+                                    >
+                                        <Trash2 size={16} />
+                                        {busyKey === `owner-delete:${owner.id}`
+                                            ? "삭제 중..."
+                                            : "사용량 삭제"}
+                                    </button>
+                                </article>
+                            ))
+                        ) : (
+                            <div className={styles.empty}>
+                                아직 집계된 트래킹 사용자가 없습니다.
+                            </div>
+                        )}
+                    </div>
+                </article>
+
+                <article className={`feature-card ${styles.panel}`}>
+                    <h2>
+                        <UserCog size={18} /> Firebase Auth 유저 관리
+                    </h2>
+                    <div className={styles.accountList}>
+                        {authUsersError ? (
+                            <div className={styles.errorNotice}>
+                                <AlertTriangle size={16} />
+                                <div>
+                                    <strong>Firebase Auth 유저를 불러오지 못했습니다.</strong>
+                                    <p>{authUsersError}</p>
+                                </div>
+                            </div>
+                        ) : authUsers.length ? (
+                            authUsers.map((authUser) => (
+                                <article
+                                    className={styles.accountItem}
+                                    key={authUser.uid}
+                                >
+                                    <div className={styles.accountMeta}>
+                                        <div>
+                                            <strong>
+                                                {authUser.displayName ||
+                                                    "이름 없음"}
+                                            </strong>
+                                            <p>
+                                                {authUser.email ||
+                                                    "이메일 없음"}
+                                            </p>
+                                        </div>
+                                        <div className={styles.accountStats}>
+                                            <span>{authUser.uid}</span>
+                                            <span>
+                                                {authUser.providerIds.join(", ") ||
+                                                    "provider 없음"}
+                                            </span>
+                                            <span>
+                                                {authUser.lastSignInTime ||
+                                                    "로그인 기록 없음"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className="button secondary"
+                                        type="button"
+                                        disabled={
+                                            busyKey === `auth:${authUser.uid}`
+                                        }
+                                        onClick={() => deleteAuthUser(authUser)}
+                                    >
+                                        <Trash2 size={16} />
+                                        {busyKey === `auth:${authUser.uid}`
+                                            ? "삭제 중..."
+                                            : "Auth 유저 삭제"}
+                                    </button>
+                                </article>
+                            ))
+                        ) : (
+                            <div className={styles.empty}>
+                                Firebase Auth 유저가 없습니다.
+                            </div>
+                        )}
+                    </div>
+                </article>
+
                 <article className={`feature-card ${styles.panel}`}>
                     <h2>
                         <Mailbox size={18} /> 문의함
@@ -265,12 +738,19 @@ export default function AdminPage() {
                     <div className={styles.messageList}>
                         {messages.length ? (
                             messages.map((message) => (
-                                <article className={styles.messageItem} key={message.id}>
+                                <article
+                                    className={styles.messageItem}
+                                    key={message.id}
+                                >
                                     <div className={styles.messageMeta}>
                                         <div>
-                                            <strong>{message.subject || "(제목 없음)"}</strong>
+                                            <strong>
+                                                {message.subject ||
+                                                    "(제목 없음)"}
+                                            </strong>
                                             <div className={styles.messageBody}>
-                                                {message.ownerName} · {message.authEmail} · {message.os}
+                                                {message.ownerName} ·{" "}
+                                                {message.authEmail} · {message.os}
                                             </div>
                                         </div>
                                         <select
@@ -284,15 +764,40 @@ export default function AdminPage() {
                                             }
                                         >
                                             <option value="new">new</option>
-                                            <option value="in-progress">in-progress</option>
-                                            <option value="resolved">resolved</option>
+                                            <option value="in-progress">
+                                                in-progress
+                                            </option>
+                                            <option value="resolved">
+                                                resolved
+                                            </option>
                                         </select>
                                     </div>
-                                    <div className={styles.messageBody}>{message.message}</div>
+                                    <div className={styles.messageBody}>
+                                        {message.message}
+                                    </div>
+                                    {message.attachments?.length ? (
+                                        <div className={styles.attachmentLinks}>
+                                            {message.attachments.map(
+                                                (attachment, index) => (
+                                                    <a
+                                                        className={styles.attachmentLink}
+                                                        href={attachment.url}
+                                                        key={`${message.id}-${index}`}
+                                                        rel="noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        {attachment.name}
+                                                    </a>
+                                                ),
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </article>
                             ))
                         ) : (
-                            <div className={styles.empty}>아직 문의가 없습니다.</div>
+                            <div className={styles.empty}>
+                                아직 문의가 없습니다.
+                            </div>
                         )}
                     </div>
                 </article>
@@ -335,15 +840,21 @@ export default function AdminPage() {
                     </div>
                     <div className={styles.insightList}>
                         {insights.slice(0, 12).map((item) => (
-                            <article className={styles.insightItem} key={item.id}>
+                            <article
+                                className={styles.insightItem}
+                                key={item.id}
+                            >
                                 <div className={styles.insightMeta}>
-                                    <strong>{item.ownerName || item.authEmail}</strong>
+                                    <strong>
+                                        {item.ownerName || item.authEmail}
+                                    </strong>
                                     <span>
                                         {item.dateKey} · {item.count} visits
                                     </span>
                                 </div>
                                 <div className={styles.insightText}>
-                                    {item.path} · {item.os} · {item.browser} · {item.deviceType}
+                                    {item.path} · {item.os} · {item.browser} ·{" "}
+                                    {item.deviceType}
                                 </div>
                             </article>
                         ))}

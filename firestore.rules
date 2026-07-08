@@ -9,7 +9,7 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && request.auth.token.email is string
-        && request.auth.token.email in ['ksy535760@gmail.com'];
+        && request.auth.token.email in ['ksy535760@gmail.com', 'seong@yeon.work'];
     }
 
     function writesOwnAuthUid() {

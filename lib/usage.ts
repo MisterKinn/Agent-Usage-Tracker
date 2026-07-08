@@ -6,6 +6,7 @@ export type UsageSummary = {
   dateKey: string;
   agent: "codex" | "claude" | "unknown";
   ownerName: string;
+  ownerId: string;
   authUid: string;
   authEmail: string;
   events: number;
@@ -22,6 +23,7 @@ export type UsageSummary = {
 };
 
 export type OwnerSummary = {
+  ownerId: string;
   ownerName: string;
   events: number;
   sessions: number;
@@ -49,13 +51,16 @@ export function activeTokenCount(item: Pick<UsageSummary, "totalTokens" | "cache
 }
 
 export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
-  const map = new Map<string, OwnerSummary>();
+  const map = new Map<string, OwnerSummary & { lastCompletedAtMs: number }>();
 
   for (const item of items) {
     const ownerName = item.ownerName || "unassigned";
+    const ownerId = item.ownerId || ownerName;
+    const completedAtMs = toDate(item.lastCompletedAt)?.getTime() ?? 0;
     const existing =
-      map.get(ownerName) ??
+      map.get(ownerId) ??
       ({
+        ownerId,
         ownerName,
         events: 0,
         sessions: 0,
@@ -64,8 +69,13 @@ export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
         inputTokens: 0,
         outputTokens: 0,
         cachedTokens: 0,
-      } satisfies OwnerSummary);
+        lastCompletedAtMs: 0,
+      } satisfies OwnerSummary & { lastCompletedAtMs: number });
 
+    if (completedAtMs >= existing.lastCompletedAtMs && ownerName) {
+      existing.ownerName = ownerName;
+      existing.lastCompletedAtMs = completedAtMs;
+    }
     existing.events += item.events || 0;
     existing.sessions += item.sessions || 0;
     existing.totalTokens += activeTokenCount(item);
@@ -73,10 +83,12 @@ export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
     existing.inputTokens += item.inputTokens || 0;
     existing.outputTokens += item.outputTokens || 0;
     existing.cachedTokens += item.cachedTokens || 0;
-    map.set(ownerName, existing);
+    map.set(ownerId, existing);
   }
 
-  return Array.from(map.values()).sort((a, b) => b.totalTokens - a.totalTokens);
+  return Array.from(map.values())
+    .map(({ lastCompletedAtMs: _lastCompletedAtMs, ...item }) => item)
+    .sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
 export function summarizeByAgent(items: UsageSummary[]): AgentSummary[] {

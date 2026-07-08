@@ -2,6 +2,12 @@
 
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import {
+    getDownloadURL,
+    ref,
+    uploadBytes,
+} from "firebase/storage";
+import {
+    FileImage,
     LifeBuoy,
     Mail,
     MessageSquareText,
@@ -10,18 +16,32 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { FormEvent, useEffect, useState } from "react";
-import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
+import { type ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { auth, db, hasFirebaseConfig, storage } from "@/lib/firebase";
 import { detectVisitorEnvironment } from "@/lib/visitor";
 import styles from "./contact.module.css";
 
-const INSTALL_COMMAND =
-    "/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3";
+type AttachmentDraft = {
+    file: File;
+    previewUrl?: string;
+};
+
+function formatFileSize(bytes: number) {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function ContactPage() {
     const [user, setUser] = useState<User | null>(null);
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
+    const [attachments, setAttachments] = useState<AttachmentDraft[]>([]);
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -34,6 +54,48 @@ export default function ContactPage() {
         return onAuthStateChanged(auth, setUser);
     }, []);
 
+    useEffect(() => {
+        return () => {
+            attachments.forEach((item) => {
+                if (item.previewUrl) {
+                    URL.revokeObjectURL(item.previewUrl);
+                }
+            });
+        };
+    }, [attachments]);
+
+    function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+        const selected = Array.from(event.target.files ?? []);
+        const limited = selected.slice(0, 5);
+
+        setAttachments((current) => {
+            current.forEach((item) => {
+                if (item.previewUrl) {
+                    URL.revokeObjectURL(item.previewUrl);
+                }
+            });
+
+            return limited.map((file) => ({
+                file,
+                previewUrl: file.type.startsWith("image/")
+                    ? URL.createObjectURL(file)
+                    : undefined,
+            }));
+        });
+    }
+
+    function removeAttachment(index: number) {
+        setAttachments((current) =>
+            current.filter((item, itemIndex) => {
+                if (itemIndex === index && item.previewUrl) {
+                    URL.revokeObjectURL(item.previewUrl);
+                }
+
+                return itemIndex !== index;
+            }),
+        );
+    }
+
     async function submitContact(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setStatus("");
@@ -43,6 +105,11 @@ export default function ContactPage() {
             setError("문의는 로그인 후 보낼 수 있습니다.");
             return;
         }
+        if (!storage) {
+            setError("Firebase Storage 설정이 필요합니다.");
+            return;
+        }
+        const storageClient = storage;
 
         setSubmitting(true);
 
@@ -50,7 +117,31 @@ export default function ContactPage() {
             const environment = detectVisitorEnvironment(
                 window.navigator.userAgent,
             );
+            const uploadedAttachments = await Promise.all(
+                attachments.map(async ({ file }) => {
+                    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+                    const storagePath = [
+                        "contact-attachments",
+                        user.uid,
+                        `${Date.now()}-${safeName}`,
+                    ].join("/");
+                    const storageRef = ref(storageClient, storagePath);
+                    await uploadBytes(storageRef, file, {
+                        contentType: file.type || "application/octet-stream",
+                    });
+                    const downloadUrl = await getDownloadURL(storageRef);
+
+                    return {
+                        name: file.name,
+                        path: storagePath,
+                        size: file.size,
+                        type: file.type || "application/octet-stream",
+                        url: downloadUrl,
+                    };
+                }),
+            );
             const docRef = await addDoc(collection(db, "contactMessages"), {
+                attachments: uploadedAttachments,
                 authEmail: user.email ?? "",
                 authUid: user.uid,
                 browser: environment.browser,
@@ -70,6 +161,10 @@ export default function ContactPage() {
                 },
                 body: JSON.stringify({
                     authEmail: user.email ?? "",
+                    attachments: uploadedAttachments.map((item) => ({
+                        name: item.name,
+                        url: item.url,
+                    })),
                     message: message.trim(),
                     messageId: docRef.id,
                     os: environment.os,
@@ -84,6 +179,15 @@ export default function ContactPage() {
 
             setSubject("");
             setMessage("");
+            setAttachments((current) => {
+                current.forEach((item) => {
+                    if (item.previewUrl) {
+                        URL.revokeObjectURL(item.previewUrl);
+                    }
+                });
+
+                return [];
+            });
             setStatus("문의가 저장되었습니다.");
         } catch (nextError) {
             const message =
@@ -102,8 +206,7 @@ export default function ContactPage() {
                 <p className="eyebrow">Contact</p>
                 <h1>문의</h1>
                 <p className={styles.lead}>
-                    설치, 로그인, 추적 누락, Firebase 연동 문제를 바로 접수할 수
-                    있습니다.
+                    서비스를 사용하며 생긴 궁금증을 문의하세요.
                 </p>
             </section>
 
@@ -149,10 +252,74 @@ export default function ContactPage() {
                                     onChange={(event) =>
                                         setMessage(event.target.value)
                                     }
-                                    placeholder="문제 상황, 실행 결과, 어떤 OS인지 자세히 적어 주세요."
+                                    placeholder="문제 상황, 실행 결과, 실행 환경 등을 자세히 적어 주세요."
                                     required
                                 />
                             </label>
+                            <label>
+                                <span>이미지 / 파일 첨부</span>
+                                <div className={styles.attachmentField}>
+                                    <input
+                                        className={styles.fileInput}
+                                        type="file"
+                                        accept="image/*,.pdf,.txt,.log,.json,.md,.zip"
+                                        multiple
+                                        onChange={handleFileChange}
+                                    />
+                                    <div className={styles.attachmentHint}>
+                                        최대 5개까지 첨부할 수 있습니다.
+                                    </div>
+                                </div>
+                            </label>
+                            {attachments.length ? (
+                                <div className={styles.attachmentList}>
+                                    {attachments.map((item, index) => (
+                                        <div
+                                            className={styles.attachmentItem}
+                                            key={`${item.file.name}-${index}`}
+                                        >
+                                            <div className={styles.attachmentMeta}>
+                                                {item.previewUrl ? (
+                                                    <img
+                                                        alt={item.file.name}
+                                                        className={
+                                                            styles.attachmentPreview
+                                                        }
+                                                        src={item.previewUrl}
+                                                    />
+                                                ) : (
+                                                    <div
+                                                        className={
+                                                            styles.attachmentIcon
+                                                        }
+                                                    >
+                                                        <FileImage size={16} />
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <strong>
+                                                        {item.file.name}
+                                                    </strong>
+                                                    <span>
+                                                        {formatFileSize(
+                                                            item.file.size,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                className="button secondary"
+                                                type="button"
+                                                onClick={() =>
+                                                    removeAttachment(index)
+                                                }
+                                            >
+                                                제거
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
                             <div className={styles.accountBadge}>
                                 <span className={styles.accountLabel}>
                                     현재 로그인 계정

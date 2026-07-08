@@ -10,43 +10,25 @@ import {
     RotateCcw,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+    detectOsFromNavigator,
+    installCommandFor,
+    rerunCommandFor,
+    type OsKind,
+} from "@/lib/install-commands";
 import styles from "./guide.module.css";
-
-const MAC_INSTALL_COMMAND =
-    "/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3";
-const WINDOWS_INSTALL_COMMAND =
-    "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))\"";
-const MAC_RERUN_COMMAND =
-    'cd ".agent-usage-tracker" && python3 track_agent_usage.py';
-const WINDOWS_RERUN_COMMAND =
-    "cd .agent-usage-tracker && py -3 track_agent_usage.py";
-
-type OsKind = "windows" | "macos";
-
-function detectOs(): OsKind {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const platform = navigator.platform.toLowerCase();
-
-    if (userAgent.includes("windows") || platform.includes("win")) {
-        return "windows";
-    }
-
-    return "macos";
-}
 
 export default function GuidePage() {
     const [os, setOs] = useState<OsKind>("macos");
     const [copied, setCopied] = useState<"install" | "rerun" | null>(null);
 
     useEffect(() => {
-        setOs(detectOs());
+        setOs(detectOsFromNavigator());
     }, []);
 
     const isWindows = os === "windows";
-    const installCommand = isWindows
-        ? WINDOWS_INSTALL_COMMAND
-        : MAC_INSTALL_COMMAND;
-    const rerunCommand = isWindows ? WINDOWS_RERUN_COMMAND : MAC_RERUN_COMMAND;
+    const installCommand = installCommandFor(os);
+    const rerunCommand = rerunCommandFor(os);
     const osLabel = isWindows ? "Windows" : "macOS / Linux";
 
     async function copyCommand(kind: "install" | "rerun") {
@@ -75,8 +57,9 @@ export default function GuidePage() {
                     <h2>처음 1회 설치</h2>
                     <p>
                         {osLabel} 기준 설치 명령어입니다.
-                        <br />이 명령어를 실행하면 로컬 프로젝트에 트래커 코드가
-                        설치되며 별도 `.env` 파일은 만들지 않습니다.
+                        <br />이 명령어를 실행하면 사용자 로컬 홈 디렉토리에
+                        트래커가 설치되며 어떤 워크스페이스에서든 같은 트래커를
+                        재사용할 수 있습니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{installCommand}</code>

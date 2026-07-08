@@ -1,4 +1,7 @@
-export const ADMIN_EMAILS = ["ksy535760@gmail.com"] as const;
+export const ADMIN_EMAILS = [
+    "ksy535760@gmail.com",
+    "seong@yeon.work",
+] as const;
 
 export function isAdminEmail(email: string | null | undefined) {
     if (!email) {
