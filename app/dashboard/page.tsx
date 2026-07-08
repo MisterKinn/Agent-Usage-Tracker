@@ -404,7 +404,12 @@ export default function DashboardPage() {
                                         </g>
                                     ))}
                                 </svg>
-                                <div className={styles.dateAxis}>
+                                <div
+                                    className={styles.dateAxis}
+                                    style={{
+                                        gridTemplateColumns: `repeat(${Math.max(dateKeys.length, 1)}, minmax(0, 1fr))`,
+                                    }}
+                                >
                                     {dateKeys.map((dateKey) => (
                                         <span key={dateKey}>
                                             {formatDateKey(dateKey)}
