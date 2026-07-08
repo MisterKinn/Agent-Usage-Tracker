@@ -355,7 +355,7 @@ def request_json_with_curl(
     headers: dict[str, str],
     original_error: Exception,
 ) -> dict[str, Any]:
-    command = ["curl", "-fsSL", "-X", method]
+    command = ["curl", "-sSL", "-X", method]
     for key, value in headers.items():
         command.extend(["-H", f"{key}: {value}"])
     command.extend(["--data-binary", "@-", url])
@@ -364,18 +364,37 @@ def request_json_with_curl(
         result = subprocess.run(
             command,
             input=data,
-            check=True,
             capture_output=True,
         )
-        return json.loads(result.stdout.decode("utf-8"))
+        if result.returncode != 0:
+            detail = error_text(result.stderr) or error_text(result.stdout)
+            raise RuntimeError(f"curl HTTP request failed: {detail}")
+
+        payload_text = result.stdout.decode("utf-8", errors="replace")
+        payload = json.loads(payload_text)
+        if isinstance(payload, dict) and "error" in payload:
+            raise RuntimeError(describe_api_error(payload["error"]))
+        return payload
     except FileNotFoundError as error:
         raise RuntimeError(f"{original_error}. curl fallback is not available.") from error
-    except subprocess.CalledProcessError as error:
-        detail = error.stderr.decode("utf-8", errors="replace") or error.stdout.decode(
-            "utf-8",
-            errors="replace",
-        )
-        raise RuntimeError(f"curl HTTP request failed: {detail}") from error
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"curl returned non-JSON response for {url}") from error
+
+
+def error_text(value: bytes) -> str:
+    return value.decode("utf-8", errors="replace").strip()
+
+
+def describe_api_error(error: Any) -> str:
+    if isinstance(error, dict):
+        code = error.get("code")
+        status = error.get("status")
+        message = error.get("message")
+        parts = [str(part) for part in [code, status, message] if part]
+        if parts:
+            return "API error: " + " | ".join(parts)
+        return f"API error: {json.dumps(error, ensure_ascii=False)}"
+    return f"API error: {error}"
 
 
 def sign_in_anonymously(config: dict[str, str]) -> dict[str, str]:
