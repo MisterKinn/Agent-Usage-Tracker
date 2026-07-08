@@ -28,6 +28,65 @@ ROOT = Path.cwd()
 CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
 ENV_PATHS = [ROOT / ".env.local", ROOT / ".env"]
+ANSI = {
+    "reset": "\033[0m",
+    "dim": "\033[2m",
+    "bold": "\033[1m",
+    "red": "\033[31m",
+    "green": "\033[32m",
+    "yellow": "\033[33m",
+    "blue": "\033[34m",
+    "cyan": "\033[36m",
+}
+
+
+def can_style() -> bool:
+    return sys.stdout.isatty() or sys.stderr.isatty()
+
+
+def paint(text: str, *styles: str) -> str:
+    if not can_style() or not styles:
+        return text
+    prefix = "".join(ANSI[style] for style in styles)
+    return f"{prefix}{text}{ANSI['reset']}"
+
+
+def emit(message: str, level: str = "info", *, error: bool = False) -> None:
+    palette = {
+        "info": ("cyan", "bold"),
+        "ok": ("green", "bold"),
+        "warn": ("yellow", "bold"),
+        "error": ("red", "bold"),
+        "run": ("blue", "bold"),
+    }
+    label = {
+        "info": "INFO",
+        "ok": "OK",
+        "warn": "WARN",
+        "error": "ERROR",
+        "run": "RUN",
+    }[level]
+    stream = sys.stderr if error else sys.stdout
+    decorated = paint(f"[{label}]", *palette[level])
+    print(f"{decorated} {message}", file=stream)
+
+
+def emit_banner(args: argparse.Namespace) -> None:
+    line = paint("=" * 60, "dim")
+    print(line)
+    print(paint("Agent Usage Tracker", "bold", "cyan"))
+    print(f"{paint('project', 'dim'):<16}{ROOT}")
+    print(f"{paint('owner', 'dim'):<16}{args.name}")
+    print(f"{paint('agent', 'dim'):<16}{args.agent}")
+    print(f"{paint('interval', 'dim'):<16}{args.interval_seconds}s")
+    print(f"{paint('window', 'dim'):<16}{'all history' if args.all_history else f'{args.since_days} days'}")
+    print(line)
+
+
+def format_counts(counts: dict[str, int]) -> str:
+    if not counts:
+        return "none"
+    return " · ".join(f"{agent}:{count}" for agent, count in sorted(counts.items()))
 
 
 def read_args() -> argparse.Namespace:
@@ -91,7 +150,7 @@ def resolve_owner_name(args: argparse.Namespace) -> str:
         config["ownerName"] = args.name
         config["updatedAt"] = now_iso()
         write_json(CONFIG_PATH, config)
-        print(f"[agent-usage-tracker] saved owner name: {args.name}")
+        emit(f"saved owner name: {args.name}", "ok")
         return args.name
 
     saved_name = str(config.get("ownerName", "")).strip()
@@ -109,7 +168,7 @@ def resolve_owner_name(args: argparse.Namespace) -> str:
     config["ownerName"] = answer
     config["updatedAt"] = now_iso()
     write_json(CONFIG_PATH, config)
-    print(f"[agent-usage-tracker] saved owner name: {answer}")
+    emit(f"saved owner name: {answer}", "ok")
     return answer
 
 
@@ -445,9 +504,10 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
         for event in events:
             counts[event["agent"]] = counts.get(event["agent"], 0) + 1
         total_tokens = sum(int(event["totalTokens"]) for event in events)
-        print(
-            "[agent-usage-tracker] dry-run found "
-            f"{len(events)} uploadable event(s), totalTokens={total_tokens}, counts={json.dumps(counts)}"
+        emit(
+            "dry-run "
+            f"events={len(events)} total_tokens={total_tokens} agents={format_counts(counts)}",
+            "info",
         )
         return
 
@@ -474,7 +534,14 @@ def sync_once(config: dict[str, str] | None, auth_user: dict[str, str], args: ar
     counts: dict[str, int] = {}
     for event in events:
         counts[event["agent"]] = counts.get(event["agent"], 0) + 1
-    print(f"[agent-usage-tracker] synced {len(events)} new event(s) as {args.name} {json.dumps(counts)}")
+    total_tokens = sum(int(event["totalTokens"]) for event in events)
+    if events:
+        emit(
+            f"synced {len(events)} event(s) · tokens={total_tokens} · agents={format_counts(counts)}",
+            "ok",
+        )
+    else:
+        emit("no new events found", "warn")
 
 
 def explain_error(error: Exception) -> str:
@@ -490,6 +557,7 @@ def explain_error(error: Exception) -> str:
 def main() -> int:
     args = read_args()
     args.name = resolve_owner_name(args)
+    emit_banner(args)
     state = read_json(STATE_PATH, {"uploadedEventIds": []})
 
     if args.dry_run:
@@ -515,12 +583,12 @@ def main() -> int:
         sync_once(config, auth_user, args, state)
         return 0
 
-    print(f"[agent-usage-tracker] watching local agent logs as {args.name} ({args.agent})")
+    emit("watching local agent logs", "run")
     while True:
         try:
             sync_once(config, auth_user, args, state)
         except Exception as error:  # Keep the watcher alive during transient failures.
-            print(f"[agent-usage-tracker] {explain_error(error)}", file=sys.stderr)
+            emit(explain_error(error), "error", error=True)
         time.sleep(args.interval_seconds)
 
 
@@ -528,8 +596,8 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        print("\n[agent-usage-tracker] stopped")
+        emit("stopped", "warn")
         raise SystemExit(0)
     except Exception as error:
-        print(f"[agent-usage-tracker] {explain_error(error)}", file=sys.stderr)
+        emit(explain_error(error), "error", error=True)
         raise SystemExit(1)
