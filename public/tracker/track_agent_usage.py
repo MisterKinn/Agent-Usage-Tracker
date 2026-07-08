@@ -24,6 +24,7 @@ from typing import Any
 
 
 THREAD_RE = re.compile(r"thread(?:\.id|_id)=([0-9a-f-]{36})")
+ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 ROOT = Path.cwd()
 CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
@@ -473,7 +474,7 @@ def firestore_value(value: Any) -> dict[str, Any]:
         return {"integerValue": str(value)}
     if isinstance(value, float):
         return {"doubleValue": value}
-    if isinstance(value, str) and value.endswith("Z") and "T" in value:
+    if isinstance(value, str) and ISO_TIMESTAMP_RE.match(value):
         return {"timestampValue": value}
     if value is None:
         return {"nullValue": None}
