@@ -17,6 +17,7 @@ import Link from "next/link";
 import {
     Activity,
     BarChart3,
+    Check,
     Copy,
     LogOut,
     Radio,
@@ -26,6 +27,7 @@ import {
 import { useEffect, useState } from "react";
 import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
 import {
+    activeTokenCount,
     formatNumber,
     summarizeByAgent,
     summarizeByOwner,
@@ -108,6 +110,7 @@ export default function DashboardPage() {
     const [authReady, setAuthReady] = useState(false);
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
     const [os, setOs] = useState<OsKind>("unknown");
+    const [copiedCommand, setCopiedCommand] = useState<"install" | "rerun" | null>(null);
 
     useEffect(() => {
         setOs(detectOs());
@@ -145,6 +148,10 @@ export default function DashboardPage() {
     const summary = summarizeByOwner(summaries);
     const agentSummary = summarizeByAgent(summaries);
     const totalTokens = summaries.reduce(
+        (sum, item) => sum + activeTokenCount(item),
+        0,
+    );
+    const rawTotalTokens = summaries.reduce(
         (sum, item) => sum + item.totalTokens,
         0,
     );
@@ -155,6 +162,15 @@ export default function DashboardPage() {
     const rerun = rerunCommand(os);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
+
+    async function copyCommand(kind: "install" | "rerun") {
+        const value = kind === "install" ? install : rerun;
+        await navigator.clipboard.writeText(value);
+        setCopiedCommand(kind);
+        window.setTimeout(() => {
+            setCopiedCommand((current) => (current === kind ? null : current));
+        }, 1600);
+    }
 
     if (!hasFirebaseConfig()) {
         return (
@@ -231,7 +247,8 @@ export default function DashboardPage() {
                     <h2>사용자별 토큰 흐름</h2>
                     <p>
                         Firestore 일자 집계가 갱신되면 아래 그래프와 순위가 함께
-                        업데이트됩니다.
+                        업데이트됩니다. 기본 숫자는 cached token을 제외한 active
+                        token 기준입니다.
                     </p>
                 </div>
                 <div className="hero-signal">
@@ -257,31 +274,31 @@ export default function DashboardPage() {
                 </div>
                 <div className="command-actions">
                     <button
-                        className="icon-button"
+                        className={`icon-button copy-feedback${copiedCommand === "install" ? " is-copied" : ""}`}
                         type="button"
                         aria-label="설치 명령 복사"
                         title="설치 명령 복사"
-                        onClick={() => navigator.clipboard.writeText(install)}
+                        onClick={() => copyCommand("install")}
                     >
-                        <Copy size={18} />
+                        {copiedCommand === "install" ? <Check size={18} /> : <Copy size={18} />}
                     </button>
                     <button
-                        className="icon-button"
+                        className={`icon-button copy-feedback${copiedCommand === "rerun" ? " is-copied" : ""}`}
                         type="button"
                         aria-label="다시 실행 명령 복사"
                         title="다시 실행 명령 복사"
-                        onClick={() => navigator.clipboard.writeText(rerun)}
+                        onClick={() => copyCommand("rerun")}
                     >
-                        <Copy size={18} />
+                        {copiedCommand === "rerun" ? <Check size={18} /> : <Copy size={18} />}
                     </button>
                 </div>
             </section>
 
             <section className="summary-grid">
                 <article className="metric">
-                    <span>total tokens</span>
+                    <span>active tokens</span>
                     <strong>{formatNumber(totalTokens)}</strong>
-                    <small>일자 집계 문서 기준</small>
+                    <small>cached 제외 · raw {formatNumber(rawTotalTokens)}</small>
                 </article>
                 <article className="metric">
                     <span>agents</span>
@@ -455,7 +472,7 @@ export default function DashboardPage() {
                                             </td>
                                             <td>
                                                 {formatNumber(
-                                                    item.totalTokens,
+                                                    activeTokenCount(item),
                                                 )}
                                             </td>
                                         </tr>

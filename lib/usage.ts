@@ -26,6 +26,7 @@ export type OwnerSummary = {
   events: number;
   sessions: number;
   totalTokens: number;
+  rawTotalTokens: number;
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
@@ -36,10 +37,15 @@ export type AgentSummary = {
   events: number;
   sessions: number;
   totalTokens: number;
+  rawTotalTokens: number;
 };
 
 export function formatNumber(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+export function activeTokenCount(item: Pick<UsageSummary, "totalTokens" | "cachedTokens">) {
+  return Math.max((item.totalTokens || 0) - (item.cachedTokens || 0), 0);
 }
 
 export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
@@ -54,6 +60,7 @@ export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
         events: 0,
         sessions: 0,
         totalTokens: 0,
+        rawTotalTokens: 0,
         inputTokens: 0,
         outputTokens: 0,
         cachedTokens: 0,
@@ -61,7 +68,8 @@ export function summarizeByOwner(items: UsageSummary[]): OwnerSummary[] {
 
     existing.events += item.events || 0;
     existing.sessions += item.sessions || 0;
-    existing.totalTokens += item.totalTokens || 0;
+    existing.totalTokens += activeTokenCount(item);
+    existing.rawTotalTokens += item.totalTokens || 0;
     existing.inputTokens += item.inputTokens || 0;
     existing.outputTokens += item.outputTokens || 0;
     existing.cachedTokens += item.cachedTokens || 0;
@@ -83,11 +91,13 @@ export function summarizeByAgent(items: UsageSummary[]): AgentSummary[] {
         events: 0,
         sessions: 0,
         totalTokens: 0,
+        rawTotalTokens: 0,
       } satisfies AgentSummary);
 
     existing.events += item.events || 0;
     existing.sessions += item.sessions || 0;
-    existing.totalTokens += item.totalTokens || 0;
+    existing.totalTokens += activeTokenCount(item);
+    existing.rawTotalTokens += item.totalTokens || 0;
     map.set(agent, existing);
   }
 
