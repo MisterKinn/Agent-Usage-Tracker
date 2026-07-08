@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, Copy, PlayCircle, Terminal, RotateCcw } from "lucide-react";
+import {
+    ArrowRight,
+    Check,
+    Copy,
+    PlayCircle,
+    Terminal,
+    RotateCcw,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import styles from "./guide.module.css";
 
@@ -57,8 +64,8 @@ export default function GuidePage() {
                 <p className="eyebrow">Guide</p>
                 <h1>설명서</h1>
                 <p>
-                    VSCode 터미널에서 첫 설치 명령어 한 번, 그 다음부터는 재실행
-                    명령어만 입력하면 됩니다.
+                    VSC 터미널에서 첫 설치 명령어 입력 이후 재실행 명령어만
+                    입력하면 됩니다.
                 </p>
             </section>
 
@@ -66,15 +73,23 @@ export default function GuidePage() {
                 <article className={`feature-card ${styles.guideCard}`}>
                     <Terminal size={22} />
                     <h2>처음 1회 설치</h2>
-                    <p>{osLabel} 기준 설치 명령어입니다. 이 명령어를 실행하면 로컬 프로젝트에 최소 트래커가 내려받아집니다.</p>
+                    <p>
+                        {osLabel} 기준 설치 명령어입니다.
+                        <br />이 명령어를 실행하면 로컬 프로젝트에 트래커 코드가
+                        설치됩니다.
+                    </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{installCommand}</code>
                         <button
-                            className={`copy-command-button${copied === "install" ? " is-copied" : ""}`}
+                            className={`copy-command-button ${styles.guideCopyButton}${copied === "install" ? ` is-copied ${styles.isCopied}` : ""}`}
                             type="button"
                             onClick={() => copyCommand("install")}
                         >
-                            {copied === "install" ? <Check size={16} /> : <Copy size={16} />}
+                            {copied === "install" ? (
+                                <Check size={16} />
+                            ) : (
+                                <Copy size={16} />
+                            )}
                             {copied === "install" ? "복사됨" : "복사"}
                         </button>
                     </div>
@@ -83,15 +98,22 @@ export default function GuidePage() {
                 <article className={`feature-card ${styles.guideCard}`}>
                     <RotateCcw size={22} />
                     <h2>다시 실행</h2>
-                    <p>이후에는 설치를 다시 할 필요 없이 아래 명령어로 워처만 재시작하면 됩니다.</p>
+                    <p>
+                        이후에는 설치를 다시 할 필요 없이 아래 명령어로 워처만
+                        재시작하면 됩니다.
+                    </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{rerunCommand}</code>
                         <button
-                            className={`copy-command-button${copied === "rerun" ? " is-copied" : ""}`}
+                            className={`copy-command-button ${styles.guideCopyButton}${copied === "rerun" ? ` is-copied ${styles.isCopied}` : ""}`}
                             type="button"
                             onClick={() => copyCommand("rerun")}
                         >
-                            {copied === "rerun" ? <Check size={16} /> : <Copy size={16} />}
+                            {copied === "rerun" ? (
+                                <Check size={16} />
+                            ) : (
+                                <Copy size={16} />
+                            )}
                             {copied === "rerun" ? "복사됨" : "복사"}
                         </button>
                     </div>
@@ -109,8 +131,14 @@ export default function GuidePage() {
                 <article className="feature-card">
                     <ArrowRight size={22} />
                     <h2>확인 방법</h2>
-                    <p>워처가 실행되면 Codex와 Claude Code 로그를 읽어서 Firebase에 일자 집계를 올립니다.</p>
-                    <p>그 다음 대시보드에서 사용자별 active token 흐름과 순위를 확인하면 됩니다.</p>
+                    <p>
+                        워처가 실행되면 Codex와 Claude Code 로그를 읽어서
+                        Firebase에 일자 집계를 올립니다.
+                    </p>
+                    <p>
+                        그 다음 대시보드에서 사용자별 active token 흐름과 순위를
+                        확인하면 됩니다.
+                    </p>
                     <div className="page-actions">
                         <Link className="button" href="/dashboard">
                             대시보드 열기
