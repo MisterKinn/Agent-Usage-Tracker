@@ -18,13 +18,8 @@ import {
     type User,
 } from "firebase/auth";
 import {
-    Activity,
-    BarChart3,
-    Clock3,
     LogOut,
     Radio,
-    Terminal,
-    Users,
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
@@ -35,6 +30,45 @@ import {
     toDate,
     type UsageEvent,
 } from "@/lib/usage";
+
+const PRODUCTION_URL = "https://agent-usage-tracker.vercel.app";
+
+type OsKind = "windows" | "macos" | "unknown";
+
+function detectOs(): OsKind {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const platform = navigator.platform.toLowerCase();
+
+    if (userAgent.includes("windows") || platform.includes("win")) {
+        return "windows";
+    }
+    if (
+        userAgent.includes("mac os") ||
+        userAgent.includes("macintosh") ||
+        platform.includes("mac")
+    ) {
+        return "macos";
+    }
+    return "unknown";
+}
+
+function installCommand(os: OsKind) {
+    if (os === "windows") {
+        return `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm '${PRODUCTION_URL}/api/install/windows')))"`;
+    }
+
+    return `/usr/bin/curl -fsSL '${PRODUCTION_URL}/api/install/python' | python3`;
+}
+
+function osLabel(os: OsKind) {
+    if (os === "windows") {
+        return "Windows VSCode 터미널";
+    }
+    if (os === "macos") {
+        return "macOS 터미널";
+    }
+    return "Python 설치형";
+}
 
 function mapEvent(id: string, data: DocumentData): UsageEvent {
     return {
@@ -88,6 +122,11 @@ export default function Home() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [os, setOs] = useState<OsKind>("unknown");
+
+    useEffect(() => {
+        setOs(detectOs());
+    }, []);
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -310,15 +349,21 @@ export default function Home() {
 
                 <aside className="command-panel">
                     <div>
-                        <h2>터미널 워처</h2>
+                        <div className="command-heading">
+                            <h2>터미널 워처</h2>
+                            <span>{osLabel(os)}</span>
+                        </div>
                         <p>
-                            각 사용자 VSCode 터미널에서 실행하면 로컬 Codex와
-                            Claude Code 로그가 Firestore로 올라갑니다.
+                            각 사용자 VSCode 터미널에서 아래 한 줄을 실행하면
+                            로컬 Codex와 Claude Code 로그가 Firestore로
+                            올라갑니다.
                         </p>
                     </div>
-                    <pre className="command">
-                        npm run track -- --name &quot;김성연&quot; --agent all
-                    </pre>
+                    <pre className="command">{installCommand(os)}</pre>
+                    <p className="command-note">
+                        첫 실행 때 이름을 물어보고, 이후 같은 프로젝트에서는
+                        저장된 이름으로 추적합니다.
+                    </p>
                 </aside>
             </section>
 

@@ -42,42 +42,52 @@ Next.js 앱, Firebase 연결 코드, Firestore 실시간 대시보드, 로컬 Co
 - [x] Firebase 환경변수 예시 파일
 - [x] Firestore 보안 규칙 초안
 - [x] 원격 설치용 `/api/install` 라우트
-- [x] 최소 로컬 워처 배포 파일
+- [x] Windows용 Python 원격 설치 라우트
+- [x] Python 표준 라이브러리 기반 최소 로컬 워처
 - [ ] Firebase 프로젝트 생성 및 `.env.local` 연결
 - [ ] GitHub 레포 생성
 - [ ] Vercel 프로젝트 연결
 
 ## 팀원 사용 방법
 
-팀원은 이 레포 전체를 clone하지 않습니다. 자기 작업 프로젝트 폴더에서 아래 한 줄만 실행합니다.
+팀원은 이 레포 전체를 clone하지 않고, Node.js나 npm도 설치하지 않습니다. Windows VSCode 터미널에서 자기 작업 프로젝트 폴더를 연 뒤 아래 한 줄만 실행합니다.
 
-```bash
-curl -fsSL https://YOUR-VERCEL-DOMAIN.vercel.app/api/install | node - --name "김성연"
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))"
 ```
 
-이 명령은 현재 프로젝트 안에 `.agent-usage-tracker/` 폴더만 만들고, 사용량 추적에 필요한 최소 파일만 내려받습니다.
+macOS 터미널에서는 아래 한 줄을 실행합니다.
+
+```bash
+/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3
+```
+
+이 명령은 현재 프로젝트 안에 `.agent-usage-tracker/` 폴더만 만들고, 사용량 추적에 필요한 최소 파일만 내려받은 뒤 바로 실행합니다.
 
 설치되는 것:
-- `.agent-usage-tracker/package.json`
-- `.agent-usage-tracker/track-agent-usage.mjs`
+- `.agent-usage-tracker/track_agent_usage.py`
 - `.agent-usage-tracker/.env.local`
-- `.agent-usage-tracker/node_modules/`
 
-이후 같은 프로젝트에서는 아래 명령으로 다시 시작할 수 있습니다.
+첫 실행 때 터미널에서 이름을 물어보고 `.agent-usage-tracker/.tracker-config.json`에 저장합니다.
 
-```bash
-npm --prefix .agent-usage-tracker run track
+이후 같은 프로젝트에서는 아래 명령으로 다시 시작할 수 있습니다. Python 실행 명령은 PC마다 `py`, `python`, `python3` 중 하나입니다.
+
+```powershell
+cd .agent-usage-tracker
+py -3 track_agent_usage.py
 ```
 
-이름을 넘기지 않으면 첫 실행 때 터미널에서 이름을 물어보고 `.agent-usage-tracker/.tracker-config.json`에 저장합니다.
+Python이 없는 PC에서는 설치 스크립트가 Python을 설치하라고 안내합니다. 그 경우에만 Python 설치가 필요합니다.
 
 설치만 하고 바로 실행하지 않을 때:
 
-```bash
-curl -fsSL https://YOUR-VERCEL-DOMAIN.vercel.app/api/install | node - --install-only
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows'))) --install-only"
 ```
 
 `--agent all`이 기본값이라 Codex와 Claude Code를 함께 추적합니다.
+
+개발자용 Node.js 설치 스크립트도 남겨두었지만, 팀원 배포 기본값은 Windows + Python 버전입니다.
 
 ## 개발자 실행 방법
 

@@ -238,6 +238,27 @@ h1 {
   font-size: 24px;
 }
 
+.command-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.command-heading h2 {
+  margin: 0 0 8px;
+}
+
+.command-heading span {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #fff5d8;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .command-panel p {
   color: rgba(255, 255, 255, 0.78);
   line-height: 1.6;
@@ -252,6 +273,11 @@ h1 {
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 13px;
   white-space: nowrap;
+}
+
+.command-note {
+  margin: 10px 0 0;
+  font-size: 13px;
 }
 
 .content-grid {
