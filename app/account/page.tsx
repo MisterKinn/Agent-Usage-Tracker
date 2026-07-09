@@ -94,6 +94,16 @@ function readableAccountError(error: unknown) {
     return message || "계정 정보를 변경하지 못했습니다.";
 }
 
+function metricValueClass(value: string) {
+    if (value.length >= 11) {
+        return "metric-value metric-value-dense";
+    }
+    if (value.length >= 9) {
+        return "metric-value metric-value-compact";
+    }
+    return "metric-value";
+}
+
 export default function AccountPage() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
@@ -187,6 +197,10 @@ export default function AccountPage() {
         };
     }, [recent30dKeys, recent7dKeys, usageRows]);
     const reportCommand = reportCommandFor(viewerOs);
+    const active7dText = formatNumber(usageSummary.active7d);
+    const active30dText = formatNumber(usageSummary.active30d);
+    const sessions30dText = formatNumber(usageSummary.sessions30d);
+    const events30dText = formatNumber(usageSummary.events30d);
 
     async function submitProfile(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -270,22 +284,30 @@ export default function AccountPage() {
             <section className="summary-grid">
                 <article className="metric">
                     <span>my active 7d</span>
-                    <strong>{formatNumber(usageSummary.active7d)}</strong>
+                    <strong className={metricValueClass(active7dText)}>
+                        {active7dText}
+                    </strong>
                     <small>최근 7일 active token</small>
                 </article>
                 <article className="metric">
                     <span>my active 30d</span>
-                    <strong>{formatNumber(usageSummary.active30d)}</strong>
+                    <strong className={metricValueClass(active30dText)}>
+                        {active30dText}
+                    </strong>
                     <small>최근 30일 active token</small>
                 </article>
                 <article className="metric">
                     <span>sessions 30d</span>
-                    <strong>{formatNumber(usageSummary.sessions30d)}</strong>
+                    <strong className={metricValueClass(sessions30dText)}>
+                        {sessions30dText}
+                    </strong>
                     <small>최근 30일 세션 수</small>
                 </article>
                 <article className="metric">
                     <span>events 30d</span>
-                    <strong>{formatNumber(usageSummary.events30d)}</strong>
+                    <strong className={metricValueClass(events30dText)}>
+                        {events30dText}
+                    </strong>
                     <small>최근 30일 응답 수</small>
                 </article>
                 <article className="metric">

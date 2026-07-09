@@ -682,6 +682,19 @@ body.home-landing {
     margin-top: 16px;
     font-size: 32px;
     line-height: 1;
+    overflow-wrap: anywhere;
+}
+
+.metric-value {
+    font-size: 32px;
+}
+
+.metric-value-compact {
+    font-size: 28px;
+}
+
+.metric-value-dense {
+    font-size: 24px;
 }
 
 .metric small {

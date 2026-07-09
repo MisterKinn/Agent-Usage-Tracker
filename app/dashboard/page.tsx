@@ -13,6 +13,7 @@ import Link from "next/link";
 import {
     Activity,
     BarChart3,
+    Bot,
     CalendarRange,
     Download,
     LogOut,
@@ -527,24 +528,22 @@ export default function DashboardPage() {
                                     <option value="all">전체</option>
                                 </select>
                             </label>
-                            <div className={styles.modeToggle}>
-                                {(["all", "codex", "claude"] as AgentFilter[]).map(
-                                    (item) => (
-                                        <button
-                                            className={
-                                                agentFilter === item
-                                                    ? styles.modeButtonActive
-                                                    : styles.modeButton
-                                            }
-                                            key={item}
-                                            type="button"
-                                            onClick={() => setAgentFilter(item)}
-                                        >
-                                            {item}
-                                        </button>
-                                    ),
-                                )}
-                            </div>
+                            <label className={styles.inlineFilterField}>
+                                <Bot size={14} />
+                                <select
+                                    className={styles.inlineFilterSelect}
+                                    value={agentFilter}
+                                    onChange={(event) =>
+                                        setAgentFilter(
+                                            event.target.value as AgentFilter,
+                                        )
+                                    }
+                                >
+                                    <option value="all">전체 에이전트</option>
+                                    <option value="codex">Codex</option>
+                                    <option value="claude">Claude</option>
+                                </select>
+                            </label>
                             <div
                                 className={styles.modeToggle}
                                 role="tablist"
