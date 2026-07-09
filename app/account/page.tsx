@@ -485,6 +485,17 @@ export default function AccountPage() {
                             터미널 리포트의 ownerId를 연결하면 웹 계정과 사용량이
                             정확하게 묶입니다.
                         </p>
+                        <div className="copy-command" style={{ marginTop: 14 }}>
+                            <code>{reportCommand}</code>
+                            <button
+                                className={`copy-command-button${commandCopied ? " is-copied" : ""}`}
+                                type="button"
+                                onClick={copyReportCommand}
+                            >
+                                <Copy size={16} />
+                                {commandCopied ? "복사됨" : "복사"}
+                            </button>
+                        </div>
                         <form
                             className="auth-form"
                             style={{ marginTop: 14 }}
