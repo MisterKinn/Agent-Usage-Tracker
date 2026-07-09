@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import {
     detectOsFromNavigator,
     installCommandFor,
+    renameCommandFor,
+    reportCommandFor,
     rerunCommandFor,
     type OsKind,
 } from "@/lib/install-commands";
@@ -20,7 +22,9 @@ import styles from "./guide.module.css";
 
 export default function GuidePage() {
     const [os, setOs] = useState<OsKind>("macos");
-    const [copied, setCopied] = useState<"install" | "rerun" | null>(null);
+    const [copied, setCopied] = useState<
+        "install" | "rerun" | "rename" | "report" | null
+    >(null);
 
     useEffect(() => {
         setOs(detectOsFromNavigator());
@@ -29,10 +33,21 @@ export default function GuidePage() {
     const isWindows = os === "windows";
     const installCommand = installCommandFor(os);
     const rerunCommand = rerunCommandFor(os);
+    const renameCommand = renameCommandFor(os);
+    const reportCommand = reportCommandFor(os);
     const osLabel = isWindows ? "Windows" : "macOS / Linux";
 
-    async function copyCommand(kind: "install" | "rerun") {
-        const command = kind === "install" ? installCommand : rerunCommand;
+    async function copyCommand(
+        kind: "install" | "rerun" | "rename" | "report",
+    ) {
+        const command =
+            kind === "install"
+                ? installCommand
+                : kind === "rerun"
+                  ? rerunCommand
+                  : kind === "rename"
+                    ? renameCommand
+                    : reportCommand;
         await navigator.clipboard.writeText(command);
         setCopied(kind);
         window.setTimeout(() => {
@@ -107,6 +122,56 @@ export default function GuidePage() {
                         </button>
                     </div>
                 </article>
+
+                <article className={`feature-card ${styles.guideCard}`}>
+                    <RotateCcw size={22} />
+                    <h2>이름 변경</h2>
+                    <p>
+                        이미 설치된 트래커의 사용자 이름을 바꾸려면 아래
+                        명령어를 실행하세요.
+                        <br />
+                        `"새 이름"` 부분만 본인 이름으로 바꾸면 됩니다.
+                    </p>
+                    <div className={`copy-command ${styles.guideCommand}`}>
+                        <code>{renameCommand}</code>
+                        <button
+                            className={`copy-command-button ${styles.guideCopyButton}${copied === "rename" ? ` is-copied ${styles.isCopied}` : ""}`}
+                            type="button"
+                            onClick={() => copyCommand("rename")}
+                        >
+                            {copied === "rename" ? (
+                                <Check size={16} />
+                            ) : (
+                                <Copy size={16} />
+                            )}
+                            {copied === "rename" ? "복사됨" : "복사"}
+                        </button>
+                    </div>
+                </article>
+
+                <article className={`feature-card ${styles.guideCard}`}>
+                    <Terminal size={22} />
+                    <h2>터미널에서 사용량 확인</h2>
+                    <p>
+                        웹 대시보드에 들어가지 않아도 현재 계정의 서버 집계를
+                        터미널에서 바로 확인할 수 있습니다.
+                    </p>
+                    <div className={`copy-command ${styles.guideCommand}`}>
+                        <code>{reportCommand}</code>
+                        <button
+                            className={`copy-command-button ${styles.guideCopyButton}${copied === "report" ? ` is-copied ${styles.isCopied}` : ""}`}
+                            type="button"
+                            onClick={() => copyCommand("report")}
+                        >
+                            {copied === "report" ? (
+                                <Check size={16} />
+                            ) : (
+                                <Copy size={16} />
+                            )}
+                            {copied === "report" ? "복사됨" : "복사"}
+                        </button>
+                    </div>
+                </article>
             </section>
 
             <section className={styles.guideSteps}>
@@ -116,6 +181,8 @@ export default function GuidePage() {
                     <p>1. 작업 중인 프로젝트에서 VSCode 터미널을 엽니다.</p>
                     <p>2. 위 설치 명령어를 한 번 실행하고 이름을 입력합니다.</p>
                     <p>3. 다음부터는 재실행 명령어만 입력해 트래커를 켭니다.</p>
+                    <p>4. 이름을 바꾸고 싶을 때는 이름 변경 명령을 실행합니다.</p>
+                    <p>5. 사용량은 터미널 또는 대시보드에서 확인합니다.</p>
                 </article>
                 <article className="feature-card">
                     <ArrowRight size={22} />

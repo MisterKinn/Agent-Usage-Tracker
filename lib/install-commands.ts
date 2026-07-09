@@ -28,3 +28,19 @@ export function rerunCommandFor(os: OsKind) {
 
     return 'cd ~/.agent-usage-tracker && python3 track_agent_usage.py';
 }
+
+export function renameCommandFor(os: OsKind) {
+    if (os === "windows") {
+        return 'cd "$HOME/.agent-usage-tracker"; py -3 track_agent_usage.py --name "새 이름" --once';
+    }
+
+    return 'cd ~/.agent-usage-tracker && python3 track_agent_usage.py --name "새 이름" --once';
+}
+
+export function reportCommandFor(os: OsKind) {
+    if (os === "windows") {
+        return 'cd "$HOME/.agent-usage-tracker"; py -3 track_agent_usage.py --report';
+    }
+
+    return "cd ~/.agent-usage-tracker && python3 track_agent_usage.py --report";
+}
