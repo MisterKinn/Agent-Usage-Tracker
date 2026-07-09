@@ -197,6 +197,10 @@
     font-size: 12px;
 }
 
+.dateTextDense {
+    font-size: 8px;
+}
+
 .lineShadow {
     fill: none;
     stroke-linecap: round;

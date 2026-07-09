@@ -637,7 +637,11 @@ export default function DashboardPage() {
                                     ))}
                                     {xTicks.map((tick) => (
                                         <text
-                                            className={styles.dateText}
+                                            className={
+                                                periodFilter === "30d"
+                                                    ? `${styles.dateText} ${styles.dateTextDense}`
+                                                    : styles.dateText
+                                            }
                                             key={`date-${tick.dateKey}`}
                                             x={tick.x}
                                             y={chartHeight - 18}
