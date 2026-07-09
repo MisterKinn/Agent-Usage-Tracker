@@ -181,13 +181,18 @@ export default function DashboardPage() {
         }),
     );
     const chartWidth = 920;
-    const chartHeight = 280;
-    const chartPaddingX = 28;
+    const chartHeight = 320;
+    const chartPaddingLeft = 74;
+    const chartPaddingRight = 28;
     const chartPaddingTop = 18;
-    const chartPaddingBottom = 54;
-    const plotWidth = chartWidth - chartPaddingX * 2;
+    const chartPaddingBottom = 58;
+    const plotWidth = chartWidth - chartPaddingLeft - chartPaddingRight;
     const plotHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
     const xDenominator = Math.max(dateKeys.length - 1, 1);
+    const xTicks = dateKeys.map((dateKey, index) => ({
+        dateKey,
+        x: chartPaddingLeft + (plotWidth * index) / xDenominator,
+    }));
     const trendSeries = trendOwners.map((owner, ownerIndex) => {
         const ownerKey = owner.ownerId || owner.ownerName;
         const values = dateKeys.map(
@@ -197,7 +202,7 @@ export default function DashboardPage() {
         const ownerMaxTokens = trendOwnerMaxMap.get(ownerKey) ?? 1;
         const points = values.map((tokens, index) => {
             const dateKey = dateKeys[index] ?? "";
-            const x = chartPaddingX + (plotWidth * index) / xDenominator;
+            const x = chartPaddingLeft + (plotWidth * index) / xDenominator;
             const scaledRatio =
                 trendMode === "normalized"
                     ? tokens / ownerMaxTokens
@@ -406,17 +411,6 @@ export default function DashboardPage() {
                                 ))}
                             </div>
                             <div className={styles.trendCanvas}>
-                                <div className={styles.trendAxis}>
-                                    {yGridValues.map((tick) => (
-                                        <span
-                                            className={styles.axisLabel}
-                                            key={tick.key}
-                                            style={{ top: `${tick.y}px` }}
-                                        >
-                                            {tick.value}
-                                        </span>
-                                    ))}
-                                </div>
                                 <svg
                                     className={styles.trendSvg}
                                     viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -427,15 +421,35 @@ export default function DashboardPage() {
                                             : "사용자별 일별 active token line chart"
                                     }
                                 >
-                                    {yGridValues.map((tick) => (
+                                    {xTicks.map((tick) => (
                                         <line
-                                            key={tick.key}
-                                            className={styles.gridLine}
-                                            x1={chartPaddingX}
-                                            x2={chartWidth - chartPaddingX}
-                                            y1={tick.y}
-                                            y2={tick.y}
+                                            key={`x-${tick.dateKey}`}
+                                            className={styles.verticalGridLine}
+                                            x1={tick.x}
+                                            x2={tick.x}
+                                            y1={chartPaddingTop}
+                                            y2={chartPaddingTop + plotHeight}
                                         />
+                                    ))}
+                                    {yGridValues.map((tick) => (
+                                        <g key={tick.key}>
+                                            <line
+                                                className={styles.gridLine}
+                                                x1={chartPaddingLeft}
+                                                x2={chartWidth - chartPaddingRight}
+                                                y1={tick.y}
+                                                y2={tick.y}
+                                            />
+                                            <text
+                                                className={styles.axisText}
+                                                x={chartPaddingLeft - 14}
+                                                y={tick.y}
+                                                textAnchor="end"
+                                                dominantBaseline="middle"
+                                            >
+                                                {tick.value}
+                                            </text>
+                                        </g>
                                     ))}
                                     {trendSeries.map((series) => (
                                         <g key={series.ownerName}>
@@ -482,19 +496,19 @@ export default function DashboardPage() {
                                             ))}
                                         </g>
                                     ))}
-                                </svg>
-                                <div
-                                    className={styles.dateAxis}
-                                    style={{
-                                        gridTemplateColumns: `repeat(${Math.max(dateKeys.length, 1)}, minmax(0, 1fr))`,
-                                    }}
-                                >
-                                    {dateKeys.map((dateKey) => (
-                                        <span key={dateKey}>
-                                            {formatDateKey(dateKey)}
-                                        </span>
+                                    {xTicks.map((tick) => (
+                                        <text
+                                            className={styles.dateText}
+                                            key={`date-${tick.dateKey}`}
+                                            x={tick.x}
+                                            y={chartHeight - 18}
+                                            textAnchor="middle"
+                                            dominantBaseline="middle"
+                                        >
+                                            {formatDateKey(tick.dateKey)}
+                                        </text>
                                     ))}
-                                </div>
+                                </svg>
                             </div>
                         </div>
                     ) : (
