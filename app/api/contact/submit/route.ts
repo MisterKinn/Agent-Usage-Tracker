@@ -15,6 +15,20 @@ function jsonError(message: string, status: number) {
     return NextResponse.json({ error: message }, { status });
 }
 
+function readableUploadError(error: unknown) {
+    const message =
+        error instanceof Error ? error.message : "문의를 저장하지 못했습니다.";
+
+    if (
+        message.includes("The specified bucket does not exist") ||
+        message.includes("Bucket name not specified or invalid")
+    ) {
+        return "Firebase Storage 버킷이 아직 준비되지 않았습니다. Firebase Console > Storage에서 버킷을 생성하고, Vercel/로컬 환경변수의 FIREBASE_ADMIN_STORAGE_BUCKET에 실제 버킷명을 넣어 주세요.";
+    }
+
+    return message;
+}
+
 export async function POST(request: Request) {
     try {
         const authorization = request.headers.get("authorization") ?? "";
@@ -148,8 +162,6 @@ export async function POST(request: Request) {
             ok: true,
         });
     } catch (error) {
-        const message =
-            error instanceof Error ? error.message : "문의를 저장하지 못했습니다.";
-        return jsonError(message, 400);
+        return jsonError(readableUploadError(error), 400);
     }
 }
