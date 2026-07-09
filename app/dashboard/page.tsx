@@ -90,7 +90,7 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
 }
 
 type TrendMode = "absolute" | "normalized";
-type PeriodFilter = "today" | "7d" | "30d" | "all";
+type PeriodFilter = "7d" | "30d" | "all";
 
 function uniqueSortedDateKeys(items: UsageSummary[]) {
     return Array.from(
@@ -104,7 +104,7 @@ export default function DashboardPage() {
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
     const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("7d");
-    const [ownerFilter, setOwnerFilter] = useState("all");
+    const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -143,9 +143,6 @@ export default function DashboardPage() {
         [summaries],
     );
     const activeDateKeys = useMemo(() => {
-        if (periodFilter === "today") {
-            return recentDateKeys(1);
-        }
         if (periodFilter === "7d") {
             return recentDateKeys(7);
         }
@@ -164,12 +161,12 @@ export default function DashboardPage() {
                 if (!activeDateKeySet.has(item.dateKey)) {
                     return false;
                 }
-                if (ownerFilter !== "all") {
-                    return (item.ownerId || item.ownerName) === ownerFilter;
+                if (selectedOwners.length > 0) {
+                    return selectedOwners.includes(item.ownerId || item.ownerName);
                 }
                 return true;
             }),
-        [activeDateKeySet, ownerFilter, summaries],
+        [activeDateKeySet, selectedOwners, summaries],
     );
     const summary = useMemo(
         () => summarizeByOwner(filteredSummaries),
@@ -193,7 +190,12 @@ export default function DashboardPage() {
     const topOwner = summary[0];
     const trackedUsers = summary.length;
     const dateKeys = activeDateKeys;
-    const trendOwners = ownerFilter === "all" ? summary.slice(0, 5) : summary.slice(0, 1);
+    const trendOwners =
+        selectedOwners.length > 0
+            ? summary.filter((owner) =>
+                  selectedOwners.includes(owner.ownerId || owner.ownerName),
+              )
+            : summary.slice(0, 5);
     const trendMatrix = new Map<string, number>();
 
     for (const item of filteredSummaries) {
@@ -210,17 +212,26 @@ export default function DashboardPage() {
     }
 
     useEffect(() => {
-        if (ownerFilter === "all") {
+        if (!selectedOwners.length) {
             return;
         }
 
-        const stillExists = allOwners.some(
-            (item) => (item.ownerId || item.ownerName) === ownerFilter,
+        const validKeys = new Set(
+            allOwners.map((item) => item.ownerId || item.ownerName),
         );
-        if (!stillExists) {
-            setOwnerFilter("all");
+        const nextSelected = selectedOwners.filter((item) => validKeys.has(item));
+        if (nextSelected.length !== selectedOwners.length) {
+            setSelectedOwners(nextSelected);
         }
-    }, [allOwners, ownerFilter]);
+    }, [allOwners, selectedOwners]);
+
+    function toggleOwnerSelection(ownerKey: string) {
+        setSelectedOwners((current) =>
+            current.includes(ownerKey)
+                ? current.filter((item) => item !== ownerKey)
+                : [...current, ownerKey],
+        );
+    }
 
     const trendMaxTokens = Math.max(
         1,
@@ -372,59 +383,6 @@ export default function DashboardPage() {
             </header>
 
             <section className="summary-grid">
-                <article className={`metric ${styles.filterMetric}`}>
-                    <span>filters</span>
-                    <div className={styles.filterStack}>
-                        <label className={styles.filterField}>
-                            <CalendarRange size={16} />
-                            <select
-                                className={styles.filterSelect}
-                                value={periodFilter}
-                                onChange={(event) =>
-                                    setPeriodFilter(
-                                        event.target.value as PeriodFilter,
-                                    )
-                                }
-                            >
-                                <option value="today">오늘</option>
-                                <option value="7d">최근 7일</option>
-                                <option value="30d">최근 30일</option>
-                                <option value="all">전체</option>
-                            </select>
-                        </label>
-                        <label className={styles.filterField}>
-                            <UserRound size={16} />
-                            <select
-                                className={styles.filterSelect}
-                                value={ownerFilter}
-                                onChange={(event) =>
-                                    setOwnerFilter(event.target.value)
-                                }
-                            >
-                                <option value="all">전체 사용자</option>
-                                {allOwners.map((owner) => (
-                                    <option
-                                        key={owner.ownerId || owner.ownerName}
-                                        value={
-                                            owner.ownerId || owner.ownerName
-                                        }
-                                    >
-                                        {owner.ownerName}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-                    <small>
-                        {periodFilter === "today"
-                            ? "오늘 기준"
-                            : periodFilter === "7d"
-                              ? "최근 7일 기준"
-                              : periodFilter === "30d"
-                                ? "최근 30일 기준"
-                                : "저장된 전체 기간 기준"}
-                    </small>
-                </article>
                 <article className="metric">
                     <span>active tokens</span>
                     <strong>{formatNumber(totalTokens)}</strong>
@@ -469,9 +427,25 @@ export default function DashboardPage() {
                     <div className="panel-header">
                         <h2>
                             <BarChart3 size={18} />
-                            유저별 최근 7일 토큰 추이
+                            유저별 토큰 추이
                         </h2>
                         <div className={styles.trendControls}>
+                            <label className={styles.inlineFilterField}>
+                                <CalendarRange size={14} />
+                                <select
+                                    className={styles.inlineFilterSelect}
+                                    value={periodFilter}
+                                    onChange={(event) =>
+                                        setPeriodFilter(
+                                            event.target.value as PeriodFilter,
+                                        )
+                                    }
+                                >
+                                    <option value="7d">최근 7일</option>
+                                    <option value="30d">최근 30일</option>
+                                    <option value="all">전체</option>
+                                </select>
+                            </label>
                             <div
                                 className={styles.modeToggle}
                                 role="tablist"
@@ -505,6 +479,57 @@ export default function DashboardPage() {
                             className={styles.trendChart}
                             aria-label="유저별 최근 7일 토큰 추이"
                         >
+                            <div className={styles.ownerFilterRow}>
+                                <button
+                                    className={
+                                        selectedOwners.length === 0
+                                            ? styles.ownerChipActive
+                                            : styles.ownerChip
+                                    }
+                                    type="button"
+                                    onClick={() => setSelectedOwners([])}
+                                >
+                                    <UserRound size={14} />
+                                    전체 사용자
+                                </button>
+                                {allOwners.map((owner) => {
+                                    const ownerKey =
+                                        owner.ownerId || owner.ownerName;
+                                    const selected =
+                                        selectedOwners.includes(ownerKey);
+                                    return (
+                                        <button
+                                            className={
+                                                selected
+                                                    ? styles.ownerChipActive
+                                                    : styles.ownerChip
+                                            }
+                                            key={ownerKey}
+                                            type="button"
+                                            onClick={() =>
+                                                toggleOwnerSelection(ownerKey)
+                                            }
+                                        >
+                                            <span
+                                                className={styles.ownerChipDot}
+                                                style={{
+                                                    backgroundColor:
+                                                        TREND_COLORS[
+                                                            allOwners.findIndex(
+                                                                (item) =>
+                                                                    (item.ownerId ||
+                                                                        item.ownerName) ===
+                                                                    ownerKey,
+                                                            ) %
+                                                                TREND_COLORS.length
+                                                        ],
+                                                }}
+                                            />
+                                            {owner.ownerName}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                             <div className={styles.trendLegend}>
                                 {trendSeries.map((series) => (
                                     <div
