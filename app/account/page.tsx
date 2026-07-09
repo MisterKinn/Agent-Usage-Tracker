@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import {
     Activity,
     Copy,
+    Link2,
     LogOut,
     Mail,
     TerminalSquare,
@@ -118,6 +119,12 @@ export default function AccountPage() {
     const [viewerOs, setViewerOs] = useState<OsKind>("macos");
     const [usageRows, setUsageRows] = useState<UsageSummary[]>([]);
     const [commandCopied, setCommandCopied] = useState(false);
+    const [linkOwnerId, setLinkOwnerId] = useState("");
+    const [linkedOwnerId, setLinkedOwnerId] = useState("");
+    const [linkedOwnerName, setLinkedOwnerName] = useState("");
+    const [linkBusy, setLinkBusy] = useState(false);
+    const [linkMessage, setLinkMessage] = useState("");
+    const [linkError, setLinkError] = useState("");
 
     useEffect(() => {
         if (!auth) {
@@ -141,7 +148,7 @@ export default function AccountPage() {
     }, []);
 
     useEffect(() => {
-        if (!db || !user?.displayName?.trim()) {
+        if (!db || (!linkedOwnerId && !user?.displayName?.trim())) {
             setUsageRows([]);
             return;
         }
@@ -149,7 +156,11 @@ export default function AccountPage() {
         return onSnapshot(
             query(
                 collection(db, "usageDailySummaries"),
-                where("ownerName", "==", user.displayName.trim()),
+                where(
+                    linkedOwnerId ? "ownerId" : "ownerName",
+                    "==",
+                    linkedOwnerId || user?.displayName?.trim() || "",
+                ),
                 limit(365),
             ),
             (snapshot) => {
@@ -164,7 +175,41 @@ export default function AccountPage() {
                 );
             },
         );
-    }, [user?.displayName]);
+    }, [linkedOwnerId, user?.displayName]);
+
+    useEffect(() => {
+        if (!user) {
+            setLinkedOwnerId("");
+            setLinkedOwnerName("");
+            setLinkOwnerId("");
+            return;
+        }
+
+        const currentUser = user;
+
+        async function loadLinkState() {
+            const token = await currentUser.getIdToken();
+            const response = await fetch("/api/account/tracker-link", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = (await response.json()) as {
+                linkedOwnerId?: string;
+                linkedOwnerName?: string;
+            };
+            setLinkedOwnerId(payload.linkedOwnerId ?? "");
+            setLinkedOwnerName(payload.linkedOwnerName ?? "");
+            setLinkOwnerId(payload.linkedOwnerId ?? "");
+        }
+
+        void loadLinkState();
+    }, [user]);
 
     const passwordProviderEnabled = Boolean(
         user?.providerData.some(
@@ -263,6 +308,87 @@ export default function AccountPage() {
         }
     }
 
+    async function linkTrackerOwner(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!user) {
+            return;
+        }
+
+        setLinkBusy(true);
+        setLinkMessage("");
+        setLinkError("");
+
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch("/api/account/tracker-link", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    ownerId: linkOwnerId.trim(),
+                }),
+            });
+            const payload = (await response.json()) as {
+                error?: string;
+                linkedOwnerId?: string;
+                linkedOwnerName?: string;
+                updatedUsageDocs?: number;
+            };
+            if (!response.ok) {
+                throw new Error(payload.error || "트래커 연결에 실패했습니다.");
+            }
+            setLinkedOwnerId(payload.linkedOwnerId ?? "");
+            setLinkedOwnerName(payload.linkedOwnerName ?? "");
+            setLinkOwnerId(payload.linkedOwnerId ?? "");
+            setLinkMessage(
+                `tracker 연결 완료: ${payload.linkedOwnerName ?? payload.linkedOwnerId} · usage ${payload.updatedUsageDocs ?? 0}건 반영`,
+            );
+        } catch (error) {
+            setLinkError(readableAccountError(error));
+        } finally {
+            setLinkBusy(false);
+        }
+    }
+
+    async function unlinkTrackerOwner() {
+        if (!user) {
+            return;
+        }
+
+        setLinkBusy(true);
+        setLinkMessage("");
+        setLinkError("");
+
+        try {
+            const token = await user.getIdToken();
+            const response = await fetch("/api/account/tracker-link", {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const payload = (await response.json()) as {
+                error?: string;
+                updatedUsageDocs?: number;
+            };
+            if (!response.ok) {
+                throw new Error(payload.error || "연결 해제에 실패했습니다.");
+            }
+            setLinkedOwnerId("");
+            setLinkedOwnerName("");
+            setLinkOwnerId("");
+            setLinkMessage(
+                `tracker 연결 해제 완료 · usage ${payload.updatedUsageDocs ?? 0}건 정리`,
+            );
+        } catch (error) {
+            setLinkError(readableAccountError(error));
+        } finally {
+            setLinkBusy(false);
+        }
+    }
+
     async function handleSignOut() {
         if (!auth) {
             router.push("/");
@@ -352,6 +478,73 @@ export default function AccountPage() {
                     </div>
                 </article>
                 <article className="settings-row">
+                    <Link2 size={22} />
+                    <div>
+                        <h2>트래커 연결</h2>
+                        <p>
+                            터미널 리포트의 ownerId를 연결하면 웹 계정과 사용량이
+                            정확하게 묶입니다.
+                        </p>
+                        <form
+                            className="auth-form"
+                            style={{ marginTop: 14 }}
+                            onSubmit={linkTrackerOwner}
+                        >
+                            <label>
+                                <span>ownerId</span>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    value={linkOwnerId}
+                                    onChange={(event) =>
+                                        setLinkOwnerId(event.target.value)
+                                    }
+                                    placeholder="owner-xxxxxxxx"
+                                />
+                            </label>
+                            {linkedOwnerId ? (
+                                <div className="notice">
+                                    연결됨:{" "}
+                                    <strong>
+                                        {linkedOwnerName || linkedOwnerId}
+                                    </strong>{" "}
+                                    · {linkedOwnerId}
+                                </div>
+                            ) : (
+                                <div className="notice">
+                                    먼저 터미널에서 `--report`를 실행해 ownerId를
+                                    확인한 뒤 붙여 넣으세요.
+                                </div>
+                            )}
+                            {linkError ? (
+                                <div className="error">{linkError}</div>
+                            ) : null}
+                            {linkMessage ? (
+                                <div className="notice">{linkMessage}</div>
+                            ) : null}
+                            <div className="page-actions">
+                                <button
+                                    className="button"
+                                    type="submit"
+                                    disabled={linkBusy}
+                                >
+                                    {linkBusy ? "연결 중..." : "트래커 연결"}
+                                </button>
+                                {linkedOwnerId ? (
+                                    <button
+                                        className="button secondary"
+                                        type="button"
+                                        disabled={linkBusy}
+                                        onClick={unlinkTrackerOwner}
+                                    >
+                                        연결 해제
+                                    </button>
+                                ) : null}
+                            </div>
+                        </form>
+                    </div>
+                </article>
+                <article className="settings-row">
                     <TerminalSquare size={22} />
                     <div>
                         <h2>내 사용량 바로 보기</h2>
@@ -377,8 +570,9 @@ export default function AccountPage() {
                             </Link>
                         </div>
                         <div className="notice" style={{ marginTop: 12 }}>
-                            현재 로그인 이름과 로컬 트래커 이름이 같을 때 내
-                            사용량 카드가 정확히 연결됩니다.
+                            {linkedOwnerId
+                                ? `현재 ${linkedOwnerName || linkedOwnerId} tracker owner와 연결되어 있습니다.`
+                                : "아직 ownerId 연결 전이라 이름 기준으로 사용량을 찾고 있습니다."}
                         </div>
                     </div>
                 </article>

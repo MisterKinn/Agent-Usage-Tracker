@@ -163,6 +163,9 @@ export async function POST(request: Request) {
 
     const now = new Date();
     const db = adminDb();
+    const existingTrackerSnapshot = await db.collection("trackerClients").doc(ownerId).get();
+    const linkedAuthUid = asNonEmptyString(existingTrackerSnapshot.get("authUid"));
+    const linkedAuthEmail = asNonEmptyString(existingTrackerSnapshot.get("authEmail"));
     const batch = db.batch();
 
     batch.set(
@@ -170,6 +173,8 @@ export async function POST(request: Request) {
       {
         ownerId,
         ownerName,
+        authUid: linkedAuthUid,
+        authEmail: linkedAuthEmail,
         agent,
         lastSeenAt: FieldValue.serverTimestamp(),
         lastWorkspacePath: workspacePath,
@@ -193,6 +198,8 @@ export async function POST(request: Request) {
           dateKey: asNonEmptyString(summary.dateKey),
           ownerId,
           ownerName: asNonEmptyString(summary.ownerName, ownerName),
+          authUid: linkedAuthUid,
+          authEmail: linkedAuthEmail,
           agent: asNonEmptyString(summary.agent, agent),
           events: asNumber(summary.events),
           sessions: asNumber(summary.sessions),

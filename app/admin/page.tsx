@@ -90,6 +90,8 @@ type TrackerClient = {
     id: string;
     ownerId: string;
     ownerName: string;
+    authEmail: string;
+    authUid: string;
     lastSeenAt: Date | null;
     lastWorkspacePath: string;
     trackerPath: string;
@@ -97,6 +99,8 @@ type TrackerClient = {
 };
 
 type TrackedOwnerView = UsageOwnerSummary & {
+    authEmail: string;
+    authUid: string;
     lastSeenAt: Date | null;
     lastWorkspacePath: string;
     trackerPath: string;
@@ -163,6 +167,8 @@ function mapTrackerClient(id: string, data: DocumentData): TrackerClient {
         id,
         ownerId: data.ownerId ?? id,
         ownerName: data.ownerName ?? "unknown",
+        authEmail: data.authEmail ?? "",
+        authUid: data.authUid ?? "",
         lastSeenAt: asDate(data.lastSeenAt),
         lastWorkspacePath: data.lastWorkspacePath ?? "",
         trackerPath: data.trackerPath ?? "",
@@ -237,7 +243,11 @@ export default function AdminPage() {
     const [actionMessage, setActionMessage] = useState("");
     const [ownerDrafts, setOwnerDrafts] = useState<Record<string, string>>({});
     const [ownerSearch, setOwnerSearch] = useState("");
+    const [ownerAgentFilter, setOwnerAgentFilter] = useState("all");
+    const [ownerLinkFilter, setOwnerLinkFilter] = useState("all");
+    const [ownerActivityFilter, setOwnerActivityFilter] = useState("all");
     const [authSearch, setAuthSearch] = useState("");
+    const [authProviderFilter, setAuthProviderFilter] = useState("all");
     const [messageSearch, setMessageSearch] = useState("");
     const [messageStatusFilter, setMessageStatusFilter] = useState("all");
 
@@ -419,6 +429,8 @@ export default function AdminPage() {
                     trackerClientMap.get(owner.ownerId || owner.ownerName);
                 return {
                     ...owner,
+                    authEmail: tracker?.authEmail ?? "",
+                    authUid: tracker?.authUid ?? "",
                     lastSeenAt: tracker?.lastSeenAt ?? null,
                     lastWorkspacePath: tracker?.lastWorkspacePath ?? "",
                     trackerPath: tracker?.trackerPath ?? "",
@@ -430,6 +442,26 @@ export default function AdminPage() {
     const visibleTrackedOwners = useMemo(
         () =>
             trackedOwnerViews.filter((owner) => {
+                if (
+                    ownerAgentFilter !== "all" &&
+                    !owner.agents.includes(ownerAgentFilter)
+                ) {
+                    return false;
+                }
+                if (ownerLinkFilter === "linked" && !owner.authUid) {
+                    return false;
+                }
+                if (ownerLinkFilter === "unlinked" && owner.authUid) {
+                    return false;
+                }
+                const activeMs = owner.lastSeenAt?.getTime() ?? 0;
+                const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
+                if (ownerActivityFilter === "live" && activeMs < recentCutoff) {
+                    return false;
+                }
+                if (ownerActivityFilter === "stale" && activeMs >= recentCutoff) {
+                    return false;
+                }
                 const query = ownerSearch.trim().toLowerCase();
                 if (!query) {
                     return true;
@@ -438,6 +470,7 @@ export default function AdminPage() {
                 return [
                     owner.ownerName,
                     owner.ownerId,
+                    owner.authEmail,
                     owner.source,
                     owner.lastWorkspacePath,
                 ]
@@ -445,11 +478,23 @@ export default function AdminPage() {
                     .toLowerCase()
                     .includes(query);
             }),
-        [ownerSearch, trackedOwnerViews],
+        [
+            ownerActivityFilter,
+            ownerAgentFilter,
+            ownerLinkFilter,
+            ownerSearch,
+            trackedOwnerViews,
+        ],
     );
     const visibleAuthUsers = useMemo(
         () =>
             authUsers.filter((authUser) => {
+                if (
+                    authProviderFilter !== "all" &&
+                    !authUser.providerIds.includes(authProviderFilter)
+                ) {
+                    return false;
+                }
                 const query = authSearch.trim().toLowerCase();
                 if (!query) {
                     return true;
@@ -465,7 +510,7 @@ export default function AdminPage() {
                     .toLowerCase()
                     .includes(query);
             }),
-        [authSearch, authUsers],
+        [authProviderFilter, authSearch, authUsers],
     );
     const visibleMessages = useMemo(
         () =>
@@ -975,6 +1020,41 @@ export default function AdminPage() {
                                 }
                             />
                         </label>
+                        <div className={styles.toolbarFilters}>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={ownerAgentFilter}
+                                onChange={(event) =>
+                                    setOwnerAgentFilter(event.target.value)
+                                }
+                            >
+                                <option value="all">모든 에이전트</option>
+                                <option value="codex">Codex</option>
+                                <option value="claude">Claude</option>
+                            </select>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={ownerLinkFilter}
+                                onChange={(event) =>
+                                    setOwnerLinkFilter(event.target.value)
+                                }
+                            >
+                                <option value="all">연결 상태 전체</option>
+                                <option value="linked">연결됨</option>
+                                <option value="unlinked">미연결</option>
+                            </select>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={ownerActivityFilter}
+                                onChange={(event) =>
+                                    setOwnerActivityFilter(event.target.value)
+                                }
+                            >
+                                <option value="all">활동 상태 전체</option>
+                                <option value="live">최근 24시간</option>
+                                <option value="stale">24시간 이상 없음</option>
+                            </select>
+                        </div>
                         <div className={styles.toolbarActions}>
                             <button
                                 className="button secondary"
@@ -1016,6 +1096,11 @@ export default function AdminPage() {
                                             {owner.source ? (
                                                 <span>{owner.source}</span>
                                             ) : null}
+                                            <span>
+                                                {owner.authUid
+                                                    ? `linked · ${owner.authEmail || owner.authUid}`
+                                                    : "unlinked"}
+                                            </span>
                                             {owner.lastSeenAt ? (
                                                 <span>
                                                     최근 동기화{" "}
@@ -1121,6 +1206,19 @@ export default function AdminPage() {
                                 }
                             />
                         </label>
+                        <div className={styles.toolbarFilters}>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={authProviderFilter}
+                                onChange={(event) =>
+                                    setAuthProviderFilter(event.target.value)
+                                }
+                            >
+                                <option value="all">모든 provider</option>
+                                <option value="password">password</option>
+                                <option value="google.com">google</option>
+                            </select>
+                        </div>
                         <div className={styles.toolbarActions}>
                             <button
                                 className="button secondary"

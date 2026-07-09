@@ -541,6 +541,7 @@ async function printUsageReport(args) {
   console.log(`tracker         ${TRACKER_VERSION} (${versionLabel})`);
   if (versionState < 0) {
     console.log(`latest          ${latestVersion}`);
+    console.log(`update cmd      ${recommendedUpdateCommand()}`);
   }
   console.log(`period          ${periodLabel}`);
   console.log(`active          ${formatNumber(totals.activeTokens)}`);
@@ -585,6 +586,13 @@ async function printUsageReport(args) {
   } else {
     console.log("[agent-usage-tracker] No synced usage found for this owner yet.");
   }
+}
+
+function recommendedUpdateCommand() {
+  if (process.platform === "win32") {
+    return `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))"`;
+  }
+  return `/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3`;
 }
 
 async function syncOnce({ args, state }) {

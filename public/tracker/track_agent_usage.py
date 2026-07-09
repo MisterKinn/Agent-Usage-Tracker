@@ -667,6 +667,7 @@ def print_usage_report(args: argparse.Namespace) -> None:
     print(f"{paint('tracker', 'dim'):<16}{TRACKER_VERSION} ({version_label})")
     if version_state < 0:
         print(f"{paint('latest', 'dim'):<16}{latest_version}")
+        print(f"{paint('update cmd', 'dim'):<16}{recommended_update_command()}")
     print(f"{paint('period', 'dim'):<16}{period_label}")
     print(f"{paint('active', 'dim'):<16}{format_number(int(totals.get('activeTokens') or 0))}")
     print(f"{paint('raw total', 'dim'):<16}{format_number(int(totals.get('totalTokens') or 0))}")
@@ -718,6 +719,12 @@ def print_usage_report(args: argparse.Namespace) -> None:
 
 def format_number(value: int) -> str:
     return f"{value:,}"
+
+
+def recommended_update_command() -> str:
+    if os.name == "nt":
+        return "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))\""
+    return "/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3"
 
 
 def sync_once(args: argparse.Namespace, state: dict[str, Any]) -> None:

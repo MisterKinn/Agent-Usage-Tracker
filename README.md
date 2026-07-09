@@ -62,19 +62,19 @@ macOS 터미널에서는 아래 한 줄을 실행합니다.
 /usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3
 ```
 
-이 명령은 현재 프로젝트 안에 `.agent-usage-tracker/` 폴더만 만들고, 사용량 추적에 필요한 최소 파일만 내려받은 뒤 바로 실행합니다.
+이 명령은 사용자 홈 디렉토리의 숨김 폴더 `~/.agent-usage-tracker/`에 트래커를 설치하고 바로 실행합니다.
 
 설치되는 것:
-- `.agent-usage-tracker/track_agent_usage.py`
-- `.agent-usage-tracker/.tracker-config.json` (첫 실행 후 이름 저장)
-- `.agent-usage-tracker/.tracker-state.json` (동기화 상태 저장)
+- `~/.agent-usage-tracker/track_agent_usage.py`
+- `~/.agent-usage-tracker/profile.json` (첫 실행 후 이름/ownerId 저장)
+- `~/.agent-usage-tracker/.tracker-state.json` (동기화 상태 저장)
 
-첫 실행 때 터미널에서 이름을 물어보고 `.agent-usage-tracker/.tracker-config.json`에 저장합니다. Firebase 공개 Web App 설정은 설치 시 트래커 코드 안에 함께 주입되므로, 팀원 로컬 프로젝트에 별도 `.env` 파일을 만들지 않습니다.
+첫 실행 때 터미널에서 이름을 물어보고 `profile.json`에 저장합니다. Firebase 공개 Web App 설정은 설치 시 트래커 코드 안에 함께 주입되므로, 팀원 로컬 프로젝트에 별도 `.env` 파일을 만들지 않습니다.
 
 이후 같은 프로젝트에서는 아래 명령으로 다시 시작할 수 있습니다. Python 실행 명령은 PC마다 `py`, `python`, `python3` 중 하나입니다.
 
 ```powershell
-cd .agent-usage-tracker
+cd $HOME\.agent-usage-tracker
 py -3 track_agent_usage.py
 ```
 
@@ -103,6 +103,14 @@ py -3 track_agent_usage.py --seed-fake-claude --once
 cd $HOME\.agent-usage-tracker
 py -3 track_agent_usage.py --report
 py -3 track_agent_usage.py --report --report-days 30
+```
+
+리포트에는 `ownerId`도 함께 표시됩니다. 웹 계정 페이지에서 이 ownerId를 연결하면, 로그인 계정과 로컬 트래커 사용량이 정확히 매칭됩니다.
+
+리포트에 `update available`이 보이면 아래 설치 명령을 한 번 더 실행하면 최신 버전으로 업데이트됩니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://agent-usage-tracker.vercel.app/api/install/windows')))"
 ```
 
 개발자용 Node.js 설치 스크립트도 남겨두었지만, 팀원 배포 기본값은 Windows + Python 버전입니다.
@@ -134,7 +142,7 @@ npm run dev
 
 이 레포를 직접 받은 개발자는 아래처럼 워처를 실행할 수 있습니다. `--agent all`이 기본값이라 Codex와 Claude Code를 함께 추적합니다.
 
-첫 실행 때 이름을 직접 넘기면 프로젝트 폴더의 `.tracker-config.json`에 저장됩니다.
+첫 실행 때 이름을 직접 넘기면 사용자 홈 디렉토리의 `~/.agent-usage-tracker/profile.json`에 저장됩니다.
 
 ```bash
 npm run track -- --name "김성연"
@@ -159,7 +167,7 @@ npm run track:report -- --report-days 30
 npm run track
 ```
 
-`.tracker-config.json`은 개인 설정 파일이라 Git에 올리지 않습니다.
+`~/.agent-usage-tracker/profile.json`은 개인 설정 파일이라 Git에 올리지 않습니다.
 
 Firebase 없이 로컬 파서만 확인할 때:
 
@@ -193,6 +201,23 @@ npm run track -- --name "김성연" --agent claude
 - 워처 실행 후 서버 API가 Firestore `usageDailySummaries`와 `trackerClients`를 갱신한다.
 - 웹 대시보드의 총 토큰, 사용자 순위, 최근 이벤트가 실시간으로 갱신된다.
 - 배포 전 `npm run build`가 통과한다.
+
+## 운영 팁
+
+- 계정 페이지에서 `ownerId`를 연결하면 이름이 바뀌어도 웹 계정과 트래커 사용량이 안정적으로 묶입니다.
+- 관리자 페이지에서는 에이전트, 연결 상태, 최근 활동 기준으로 트래킹 사용자를 필터링할 수 있습니다.
+- 대시보드 최근 7일/30일 모드에서는 이전 같은 길이 구간 대비 변화량도 함께 볼 수 있습니다.
+
+## 문제 해결
+
+- 사용량이 내 계정으로 안 잡히면:
+  - 터미널에서 `--report` 실행
+  - 표시된 `ownerId` 확인
+  - 웹 `계정` 페이지에서 tracker owner 연결
+- 업데이트 안내가 뜨면:
+  - 설치 명령을 한 번 더 실행해 트래커를 최신 버전으로 덮어쓰기
+- Windows 테스트만 빨리 하고 싶으면:
+  - `--seed-fake-claude --once`로 가짜 로그를 넣고 업로드 흐름 확인
 
 ## Firebase 설정
 

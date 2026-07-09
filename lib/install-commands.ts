@@ -44,3 +44,7 @@ export function reportCommandFor(os: OsKind) {
 
     return "cd ~/.agent-usage-tracker && python3 track_agent_usage.py --report";
 }
+
+export function updateCommandFor(os: OsKind) {
+    return installCommandFor(os);
+}

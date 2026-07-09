@@ -73,6 +73,8 @@ export async function DELETE(request: Request) {
         const deletedProfiles = await deleteMatchingDocs("userProfiles", "authUid", uid);
         const deletedVisits = await deleteMatchingDocs("visitorInsights", "authUid", uid);
         const deletedMessages = await deleteMatchingDocs("contactMessages", "authUid", uid);
+        const deletedUsage = await deleteMatchingDocs("usageDailySummaries", "authUid", uid);
+        const deletedTrackerClients = await deleteMatchingDocs("trackerClients", "authUid", uid);
 
         if (!body.cleanupOnly) {
             await adminAuth().deleteUser(uid);
@@ -82,6 +84,8 @@ export async function DELETE(request: Request) {
             ok: true,
             deletedMessages,
             deletedProfiles,
+            deletedTrackerClients,
+            deletedUsage,
             deletedVisits,
             email: userRecord.email ?? "",
             uid,

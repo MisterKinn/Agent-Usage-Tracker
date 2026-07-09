@@ -95,6 +95,16 @@ type TrendMode = "absolute" | "normalized";
 type PeriodFilter = "7d" | "30d" | "all";
 type AgentFilter = "all" | "codex" | "claude";
 
+function compareLabel(delta: number) {
+    if (delta > 0) {
+        return `+${formatNumber(delta)}`;
+    }
+    if (delta < 0) {
+        return `-${formatNumber(Math.abs(delta))}`;
+    }
+    return "0";
+}
+
 function uniqueSortedDateKeys(items: UsageSummary[]) {
     return Array.from(
         new Set(items.map((item) => item.dateKey).filter(Boolean)),
@@ -199,6 +209,8 @@ export default function DashboardPage() {
     const topOwner = summary[0];
     const trackedUsers = summary.length;
     const dateKeys = activeDateKeys;
+    const compareDays =
+        periodFilter === "7d" ? 7 : periodFilter === "30d" ? 30 : 0;
     const trendOwners =
         selectedOwners.length > 0
             ? summary.filter((owner) =>
@@ -389,6 +401,74 @@ export default function DashboardPage() {
             y: chartPaddingTop + plotHeight - plotHeight * ratio,
         };
     });
+    const previousComparison = useMemo(() => {
+        if (!compareDays) {
+            return null;
+        }
+
+        const currentKeySet = new Set(recentDateKeys(compareDays));
+        const previousKeySet = new Set(
+            Array.from({ length: compareDays }, (_, index) => {
+                const offset = compareDays * 2 - 1 - index;
+                const date = new Date(
+                    Date.now() - offset * 24 * 60 * 60 * 1000,
+                );
+                return dashboardDateKey(date);
+            }),
+        );
+
+        const previousRows = summaries.filter((item) => {
+            if (!previousKeySet.has(item.dateKey)) {
+                return false;
+            }
+            if (agentFilter !== "all" && item.agent !== agentFilter) {
+                return false;
+            }
+            if (
+                selectedOwners.length > 0 &&
+                !selectedOwners.includes(item.ownerId || item.ownerName)
+            ) {
+                return false;
+            }
+            return true;
+        });
+
+        const currentActive = summaries.reduce((sum, item) => {
+            if (!currentKeySet.has(item.dateKey)) {
+                return sum;
+            }
+            if (agentFilter !== "all" && item.agent !== agentFilter) {
+                return sum;
+            }
+            if (
+                selectedOwners.length > 0 &&
+                !selectedOwners.includes(item.ownerId || item.ownerName)
+            ) {
+                return sum;
+            }
+            return sum + activeTokenCount(item);
+        }, 0);
+
+        const previousActive = previousRows.reduce(
+            (sum, item) => sum + activeTokenCount(item),
+            0,
+        );
+        const previousSessions = previousRows.reduce(
+            (sum, item) => sum + item.sessions,
+            0,
+        );
+        const previousEvents = previousRows.reduce(
+            (sum, item) => sum + item.events,
+            0,
+        );
+
+        return {
+            label: `이전 ${compareDays}일 대비`,
+            activeDelta: currentActive - previousActive,
+            sessionDelta: totalSessions - previousSessions,
+            eventDelta: totalEvents - previousEvents,
+        };
+    }, [agentFilter, compareDays, selectedOwners, summaries, totalEvents, totalSessions]);
 
     if (!hasFirebaseConfig()) {
         return (
@@ -503,6 +583,26 @@ export default function DashboardPage() {
                     </small>
                 </article>
             </section>
+
+            {previousComparison ? (
+                <section className="summary-grid">
+                    <article className="metric">
+                        <span>{previousComparison.label}</span>
+                        <strong>{compareLabel(previousComparison.activeDelta)}</strong>
+                        <small>active token 변화</small>
+                    </article>
+                    <article className="metric">
+                        <span>{previousComparison.label}</span>
+                        <strong>{compareLabel(previousComparison.sessionDelta)}</strong>
+                        <small>sessions 변화</small>
+                    </article>
+                    <article className="metric">
+                        <span>{previousComparison.label}</span>
+                        <strong>{compareLabel(previousComparison.eventDelta)}</strong>
+                        <small>events 변화</small>
+                    </article>
+                </section>
+            ) : null}
 
             <section className={styles.trendGrid}>
                 <article className={`panel ${styles.trendPanel}`}>
