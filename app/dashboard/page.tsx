@@ -13,13 +13,14 @@ import Link from "next/link";
 import {
     Activity,
     BarChart3,
+    CalendarRange,
     LogOut,
     Radio,
     Scale,
     Sparkles,
     UserRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
 import {
     activeTokenCount,
@@ -89,12 +90,21 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
 }
 
 type TrendMode = "absolute" | "normalized";
+type PeriodFilter = "today" | "7d" | "30d" | "all";
+
+function uniqueSortedDateKeys(items: UsageSummary[]) {
+    return Array.from(
+        new Set(items.map((item) => item.dateKey).filter(Boolean)),
+    ).sort();
+}
 
 export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
     const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
+    const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("7d");
+    const [ownerFilter, setOwnerFilter] = useState("all");
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -117,7 +127,7 @@ export default function DashboardPage() {
         const usageQuery = query(
             collection(db, "usageDailySummaries"),
             orderBy("lastCompletedAt", "desc"),
-            limit(200),
+            limit(2000),
         );
 
         return onSnapshot(usageQuery, (snapshot) => {
@@ -127,29 +137,66 @@ export default function DashboardPage() {
         });
     }, [user]);
 
-    const summary = summarizeByOwner(summaries);
-    const totalTokens = summaries.reduce(
+    const allOwners = useMemo(() => summarizeByOwner(summaries), [summaries]);
+    const availableDateKeys = useMemo(
+        () => uniqueSortedDateKeys(summaries),
+        [summaries],
+    );
+    const activeDateKeys = useMemo(() => {
+        if (periodFilter === "today") {
+            return recentDateKeys(1);
+        }
+        if (periodFilter === "7d") {
+            return recentDateKeys(7);
+        }
+        if (periodFilter === "30d") {
+            return recentDateKeys(30);
+        }
+        return availableDateKeys;
+    }, [availableDateKeys, periodFilter]);
+    const activeDateKeySet = useMemo(
+        () => new Set(activeDateKeys),
+        [activeDateKeys],
+    );
+    const filteredSummaries = useMemo(
+        () =>
+            summaries.filter((item) => {
+                if (!activeDateKeySet.has(item.dateKey)) {
+                    return false;
+                }
+                if (ownerFilter !== "all") {
+                    return (item.ownerId || item.ownerName) === ownerFilter;
+                }
+                return true;
+            }),
+        [activeDateKeySet, ownerFilter, summaries],
+    );
+    const summary = useMemo(
+        () => summarizeByOwner(filteredSummaries),
+        [filteredSummaries],
+    );
+    const totalTokens = filteredSummaries.reduce(
         (sum, item) => sum + activeTokenCount(item),
         0,
     );
-    const rawTotalTokens = summaries.reduce(
+    const rawTotalTokens = filteredSummaries.reduce(
         (sum, item) => sum + item.totalTokens,
         0,
     );
-    const totalSessions = summaries.reduce(
+    const totalSessions = filteredSummaries.reduce(
         (sum, item) => sum + item.sessions,
         0,
     );
-    const totalEvents = summaries.reduce((sum, item) => sum + item.events, 0);
-    const lastEventDate = toDate(summaries[0]?.lastCompletedAt ?? null);
+    const totalEvents = filteredSummaries.reduce((sum, item) => sum + item.events, 0);
+    const lastEventDate = toDate(filteredSummaries[0]?.lastCompletedAt ?? null);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
     const trackedUsers = summary.length;
-    const dateKeys = recentDateKeys(7);
-    const trendOwners = summary.slice(0, 5);
+    const dateKeys = activeDateKeys;
+    const trendOwners = ownerFilter === "all" ? summary.slice(0, 5) : summary.slice(0, 1);
     const trendMatrix = new Map<string, number>();
 
-    for (const item of summaries) {
+    for (const item of filteredSummaries) {
         if (!item.dateKey) {
             continue;
         }
@@ -161,6 +208,19 @@ export default function DashboardPage() {
             (trendMatrix.get(trendKey) ?? 0) + activeTokenCount(item),
         );
     }
+
+    useEffect(() => {
+        if (ownerFilter === "all") {
+            return;
+        }
+
+        const stillExists = allOwners.some(
+            (item) => (item.ownerId || item.ownerName) === ownerFilter,
+        );
+        if (!stillExists) {
+            setOwnerFilter("all");
+        }
+    }, [allOwners, ownerFilter]);
 
     const trendMaxTokens = Math.max(
         1,
@@ -312,6 +372,59 @@ export default function DashboardPage() {
             </header>
 
             <section className="summary-grid">
+                <article className={`metric ${styles.filterMetric}`}>
+                    <span>filters</span>
+                    <div className={styles.filterStack}>
+                        <label className={styles.filterField}>
+                            <CalendarRange size={16} />
+                            <select
+                                className={styles.filterSelect}
+                                value={periodFilter}
+                                onChange={(event) =>
+                                    setPeriodFilter(
+                                        event.target.value as PeriodFilter,
+                                    )
+                                }
+                            >
+                                <option value="today">오늘</option>
+                                <option value="7d">최근 7일</option>
+                                <option value="30d">최근 30일</option>
+                                <option value="all">전체</option>
+                            </select>
+                        </label>
+                        <label className={styles.filterField}>
+                            <UserRound size={16} />
+                            <select
+                                className={styles.filterSelect}
+                                value={ownerFilter}
+                                onChange={(event) =>
+                                    setOwnerFilter(event.target.value)
+                                }
+                            >
+                                <option value="all">전체 사용자</option>
+                                {allOwners.map((owner) => (
+                                    <option
+                                        key={owner.ownerId || owner.ownerName}
+                                        value={
+                                            owner.ownerId || owner.ownerName
+                                        }
+                                    >
+                                        {owner.ownerName}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                    <small>
+                        {periodFilter === "today"
+                            ? "오늘 기준"
+                            : periodFilter === "7d"
+                              ? "최근 7일 기준"
+                              : periodFilter === "30d"
+                                ? "최근 30일 기준"
+                                : "저장된 전체 기간 기준"}
+                    </small>
+                </article>
                 <article className="metric">
                     <span>active tokens</span>
                     <strong>{formatNumber(totalTokens)}</strong>

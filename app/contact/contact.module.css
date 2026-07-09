@@ -37,6 +37,12 @@
     line-height: 1.65;
 }
 
+.contactGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+    gap: 16px;
+}
+
 .metaList {
     display: grid;
     gap: 12px;
@@ -93,8 +99,121 @@
     letter-spacing: -0.01em;
 }
 
+.ticketNotice {
+    display: grid;
+    gap: 4px;
+    border: 1px solid rgba(143, 215, 167, 0.24);
+    border-radius: 8px;
+    background: rgba(143, 215, 167, 0.08);
+    color: var(--accent);
+    padding: 12px 14px;
+}
+
+.ticketNotice span {
+    color: var(--muted);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+}
+
+.historyPanel {
+    display: grid;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.16);
+    padding: 16px;
+}
+
+.historyHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.historyHeader h3 {
+    margin: 4px 0 0;
+    font-size: 22px;
+}
+
+.historyCount {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--accent);
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.historyList {
+    display: grid;
+    gap: 10px;
+}
+
+.historyItem {
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 14px;
+}
+
+.historyItem p,
+.historyItem small {
+    margin: 0;
+}
+
+.historyItem p {
+    color: var(--muted);
+    white-space: pre-wrap;
+}
+
+.historyItem small {
+    color: var(--muted-2);
+}
+
+.historyMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.statusBadge,
+.ticketCode {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.statusBadge {
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ticketCode {
+    width: fit-content;
+    color: var(--muted);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    background: rgba(255, 255, 255, 0.02);
+}
+
 @media (max-width: 980px) {
     .contactShell {
+        grid-template-columns: 1fr;
+    }
+
+    .contactGrid {
         grid-template-columns: 1fr;
     }
 

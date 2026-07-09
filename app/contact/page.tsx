@@ -3,10 +3,52 @@
 import { Send } from "lucide-react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { type FormEvent, useEffect, useState } from "react";
-import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+    collection,
+    limit,
+    onSnapshot,
+    query,
+    where,
+    type DocumentData,
+} from "firebase/firestore";
+import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
 import { detectVisitorEnvironment } from "@/lib/visitor";
 import styles from "./contact.module.css";
+
+type MyMessage = {
+    id: string;
+    subject: string;
+    message: string;
+    status: string;
+    createdAt: Date | null;
+};
+
+function asDate(value: unknown) {
+    if (!value) {
+        return null;
+    }
+
+    if (value instanceof Date) {
+        return value;
+    }
+
+    if (typeof value === "object" && value && "toDate" in value) {
+        return (value as { toDate: () => Date }).toDate();
+    }
+
+    return null;
+}
+
+function mapMyMessage(id: string, data: DocumentData): MyMessage {
+    return {
+        id,
+        subject: data.subject ?? "",
+        message: data.message ?? "",
+        status: data.status ?? "new",
+        createdAt: asDate(data.createdAt),
+    };
+}
 
 export default function ContactPage() {
     const [user, setUser] = useState<User | null>(null);
@@ -15,6 +57,8 @@ export default function ContactPage() {
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [ticketId, setTicketId] = useState("");
+    const [myMessages, setMyMessages] = useState<MyMessage[]>([]);
 
     useEffect(() => {
         if (!auth) {
@@ -24,10 +68,42 @@ export default function ContactPage() {
         return onAuthStateChanged(auth, setUser);
     }, []);
 
+    useEffect(() => {
+        if (!db || !user) {
+            setMyMessages([]);
+            return;
+        }
+
+        return onSnapshot(
+            query(
+                collection(db, "contactMessages"),
+                where("authUid", "==", user.uid),
+                limit(20),
+            ),
+            (snapshot) =>
+                setMyMessages(
+                    snapshot.docs
+                        .map((item) => mapMyMessage(item.id, item.data()))
+                        .sort(
+                            (a, b) =>
+                                (b.createdAt?.getTime() ?? 0) -
+                                (a.createdAt?.getTime() ?? 0),
+                        ),
+                ),
+        );
+    }, [user]);
+
+    const openMessageCount = useMemo(
+        () =>
+            myMessages.filter((item) => item.status !== "resolved").length,
+        [myMessages],
+    );
+
     async function submitContact(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setStatus("");
         setError("");
+        setTicketId("");
 
         if (!user || !auth) {
             setError("문의는 로그인 후 보낼 수 있습니다.");
@@ -66,9 +142,12 @@ export default function ContactPage() {
                 );
             }
 
+            const payload = (await response.json()) as { id: string };
+
             setSubject("");
             setMessage("");
-            setStatus("문의가 저장되었습니다.");
+            setTicketId(payload.id);
+            setStatus("문의가 접수되었습니다.");
         } catch (nextError) {
             const message =
                 nextError instanceof Error
@@ -110,57 +189,113 @@ export default function ContactPage() {
                             </div>
                         </div>
                     ) : (
-                        <form className="auth-form" onSubmit={submitContact}>
-                            <label>
-                                <span>제목</span>
-                                <input
-                                    className="input"
-                                    type="text"
-                                    value={subject}
-                                    onChange={(event) =>
-                                        setSubject(event.target.value)
-                                    }
-                                    placeholder="예: Claude Code 로그가 안 잡혀요"
-                                    required
-                                />
-                            </label>
-                            <label>
-                                <span>문의 내용</span>
-                                <textarea
-                                    className={styles.textArea}
-                                    value={message}
-                                    onChange={(event) =>
-                                        setMessage(event.target.value)
-                                    }
-                                    placeholder="문제 상황, 실행 결과, 실행 환경 등을 자세히 적어 주세요."
-                                    required
-                                />
-                            </label>
-                            <div className="notice">
-                                이미지나 로그 파일이 있으면 Google Drive, Notion,
-                                이미지 링크 등을 문의 내용에 함께 적어 주세요.
-                            </div>
-                            <div className={styles.accountBadge}>
-                                <span className={styles.accountLabel}>
-                                    현재 로그인 계정
-                                </span>
-                                <strong>{user.email ?? "unknown"}</strong>
-                            </div>
-                            {error ? (
-                                <div className="error">{error}</div>
-                            ) : null}
-                            {status ? (
-                                <div className="notice">{status}</div>
-                            ) : null}
-                            <button
-                                className="button"
-                                type="submit"
-                                disabled={submitting}
-                            >
-                                <Send size={18} />
-                                {submitting ? "보내는 중..." : "문의 보내기"}
-                            </button>
-                        </form>
+                        <div className={styles.contactGrid}>
+                            <form className="auth-form" onSubmit={submitContact}>
+                                <label>
+                                    <span>제목</span>
+                                    <input
+                                        className="input"
+                                        type="text"
+                                        value={subject}
+                                        onChange={(event) =>
+                                            setSubject(event.target.value)
+                                        }
+                                        placeholder="예: Claude Code 로그가 안 잡혀요"
+                                        required
+                                    />
+                                </label>
+                                <label>
+                                    <span>문의 내용</span>
+                                    <textarea
+                                        className={styles.textArea}
+                                        value={message}
+                                        onChange={(event) =>
+                                            setMessage(event.target.value)
+                                        }
+                                        placeholder="문제 상황, 실행 결과, 실행 환경 등을 자세히 적어 주세요."
+                                        required
+                                    />
+                                </label>
+                                <div className="notice">
+                                    이미지나 로그 파일이 있으면 Google Drive, Notion,
+                                    이미지 링크 등을 문의 내용에 함께 적어 주세요.
+                                </div>
+                                <div className={styles.accountBadge}>
+                                    <span className={styles.accountLabel}>
+                                        현재 로그인 계정
+                                    </span>
+                                    <strong>{user.email ?? "unknown"}</strong>
+                                </div>
+                                {error ? (
+                                    <div className="error">{error}</div>
+                                ) : null}
+                                {status ? (
+                                    <div className={styles.ticketNotice}>
+                                        <strong>{status}</strong>
+                                        {ticketId ? (
+                                            <span>티켓 번호: {ticketId}</span>
+                                        ) : null}
+                                    </div>
+                                ) : null}
+                                <button
+                                    className="button"
+                                    type="submit"
+                                    disabled={submitting}
+                                >
+                                    <Send size={18} />
+                                    {submitting ? "보내는 중..." : "문의 보내기"}
+                                </button>
+                            </form>
+
+                            <aside className={styles.historyPanel}>
+                                <div className={styles.historyHeader}>
+                                    <div>
+                                        <p className="eyebrow">My tickets</p>
+                                        <h3>내 문의 내역</h3>
+                                    </div>
+                                    <span className={styles.historyCount}>
+                                        진행 중 {openMessageCount}
+                                    </span>
+                                </div>
+                                <div className={styles.historyList}>
+                                    {myMessages.length ? (
+                                        myMessages.map((item) => (
+                                            <article
+                                                className={styles.historyItem}
+                                                key={item.id}
+                                            >
+                                                <div className={styles.historyMeta}>
+                                                    <strong>
+                                                        {item.subject ||
+                                                            "(제목 없음)"}
+                                                    </strong>
+                                                    <span
+                                                        className={styles.statusBadge}
+                                                    >
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+                                                <div className={styles.ticketCode}>
+                                                    티켓 {item.id}
+                                                </div>
+                                                <p>{item.message}</p>
+                                                <small>
+                                                    {item.createdAt
+                                                        ? item.createdAt.toLocaleString(
+                                                              "ko-KR",
+                                                          )
+                                                        : "방금 전"}
+                                                </small>
+                                            </article>
+                                        ))
+                                    ) : (
+                                        <div className="notice">
+                                            아직 접수한 문의가 없습니다.
+                                        </div>
+                                    )}
+                                </div>
+                            </aside>
+                        </div>
                     )}
                 </article>
             </section>

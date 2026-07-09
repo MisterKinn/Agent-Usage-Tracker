@@ -11,7 +11,7 @@
 
 .metricGrid {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
 }
 
@@ -48,6 +48,42 @@
     gap: 8px;
     margin: 0 0 14px;
     font-size: 22px;
+}
+
+.panelToolbar {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.searchField {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+}
+
+.searchField svg {
+    color: var(--muted);
+}
+
+.toolbarInput,
+.toolbarSelect {
+    min-height: 38px;
+}
+
+.toolbarSelect {
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--accent);
+    padding: 0 12px;
+}
+
+.toolbarActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .flashNotice {
@@ -142,6 +178,29 @@
     min-width: 0;
 }
 
+.metaGrid {
+    display: grid;
+    gap: 6px;
+}
+
+.metaLine {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.metaLine span {
+    word-break: break-all;
+}
+
+.stackActions {
+    display: grid;
+    gap: 8px;
+}
+
 .pillRow,
 .messageList,
 .insightList {
@@ -203,6 +262,13 @@
     margin-bottom: 10px;
 }
 
+.ticketMeta {
+    margin-top: 6px;
+    color: var(--muted-2);
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+}
+
 .attachmentLinks {
     display: flex;
     flex-wrap: wrap;
@@ -249,5 +315,9 @@
 
     .inlineEditor {
         grid-template-columns: 1fr;
+    }
+
+    .toolbarActions {
+        flex-direction: column;
     }
 }
