@@ -130,7 +130,7 @@ export default function GuidePage() {
                         이미 설치된 트래커의 사용자 이름을 바꾸려면 아래
                         명령어를 실행하세요.
                         <br />
-                        `"새 이름"` 부분만 본인 이름으로 바꾸면 됩니다.
+                        "새 이름" 부분만 본인 이름으로 바꾸면 됩니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{renameCommand}</code>
@@ -153,7 +153,8 @@ export default function GuidePage() {
                     <Terminal size={22} />
                     <h2>터미널에서 사용량 확인</h2>
                     <p>
-                        웹 대시보드에 들어가지 않아도 현재 계정의 서버 집계를
+                        웹 대시보드 접속 없이도 현재 계정의 토큰 사용량을
+                        <br />
                         터미널에서 바로 확인할 수 있습니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
@@ -181,7 +182,9 @@ export default function GuidePage() {
                     <p>1. 작업 중인 프로젝트에서 VSCode 터미널을 엽니다.</p>
                     <p>2. 위 설치 명령어를 한 번 실행하고 이름을 입력합니다.</p>
                     <p>3. 다음부터는 재실행 명령어만 입력해 트래커를 켭니다.</p>
-                    <p>4. 이름을 바꾸고 싶을 때는 이름 변경 명령을 실행합니다.</p>
+                    <p>
+                        4. 이름을 바꾸고 싶을 때는 이름 변경 명령을 실행합니다.
+                    </p>
                     <p>5. 사용량은 터미널 또는 대시보드에서 확인합니다.</p>
                 </article>
                 <article className="feature-card">
