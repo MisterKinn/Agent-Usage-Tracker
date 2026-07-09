@@ -34,6 +34,7 @@ LEGACY_CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
 TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__"
 TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__"
+TRACKER_REPORT_URL = TRACKER_UPLOAD_URL.rsplit("/", 1)[0] + "/report"
 ANSI = {
     "reset": "\033[0m",
     "dim": "\033[2m",
@@ -115,6 +116,8 @@ def read_args() -> argparse.Namespace:
     parser.add_argument("--upload-interval-seconds", type=float, default=600)
     parser.add_argument("--seed-fake-claude", action="store_true")
     parser.add_argument("--seed-count", type=int, default=3)
+    parser.add_argument("--report", action="store_true")
+    parser.add_argument("--report-days", type=int, default=7)
     parser.add_argument("--codex-db", default=str(Path.home() / ".codex" / "logs_2.sqlite"))
     parser.add_argument(
         "--codex-session-index",
@@ -588,6 +591,66 @@ def describe_api_error(error: Any) -> str:
     return f"API error: {error}"
 
 
+def print_usage_report(args: argparse.Namespace) -> None:
+    payload = request_json(
+        TRACKER_REPORT_URL,
+        "POST",
+        {"ownerId": args.owner_id, "days": args.report_days},
+        token=TRACKER_WRITE_TOKEN,
+    )
+    totals = payload.get("totals") or {}
+    agent_totals = payload.get("agentTotals") or []
+    daily = payload.get("daily") or []
+    tracker_client = payload.get("trackerClient") or {}
+    period_days = int(payload.get("periodDays") or 0)
+    period_label = "all" if period_days <= 0 else f"{period_days}d"
+
+    line = paint("=" * 60, "dim")
+    print(line)
+    print(paint("My Usage Report", "bold", "cyan"))
+    print(f"{paint('owner', 'dim'):<16}{payload.get('ownerName') or args.name}")
+    print(f"{paint('ownerId', 'dim'):<16}{args.owner_id}")
+    print(f"{paint('period', 'dim'):<16}{period_label}")
+    print(f"{paint('active', 'dim'):<16}{format_number(int(totals.get('activeTokens') or 0))}")
+    print(f"{paint('raw total', 'dim'):<16}{format_number(int(totals.get('totalTokens') or 0))}")
+    print(f"{paint('input', 'dim'):<16}{format_number(int(totals.get('inputTokens') or 0))}")
+    print(f"{paint('output', 'dim'):<16}{format_number(int(totals.get('outputTokens') or 0))}")
+    print(f"{paint('cached', 'dim'):<16}{format_number(int(totals.get('cachedTokens') or 0))}")
+    print(f"{paint('cache create', 'dim'):<16}{format_number(int(totals.get('cacheCreationTokens') or 0))}")
+    print(f"{paint('sessions', 'dim'):<16}{format_number(int(totals.get('sessions') or 0))}")
+    print(f"{paint('events', 'dim'):<16}{format_number(int(totals.get('events') or 0))}")
+    if tracker_client.get("lastSeenAt"):
+        print(f"{paint('last seen', 'dim'):<16}{tracker_client['lastSeenAt']}")
+    print(line)
+
+    if agent_totals:
+        print(paint("By Agent", "bold"))
+        for item in agent_totals:
+            print(
+                f"  {item.get('agent', 'unknown'):<8}"
+                f"active={format_number(int(item.get('activeTokens') or 0))} "
+                f"raw={format_number(int(item.get('totalTokens') or 0))} "
+                f"events={format_number(int(item.get('events') or 0))}"
+            )
+        print(line)
+
+    if daily:
+        print(paint("Recent Days", "bold"))
+        for item in daily[: min(len(daily), 12)]:
+            print(
+                f"  {item.get('dateKey', '-'):<12}"
+                f"{item.get('agent', 'unknown'):<8}"
+                f"active={format_number(int(item.get('activeTokens') or 0))} "
+                f"raw={format_number(int(item.get('totalTokens') or 0))}"
+            )
+    else:
+        emit("No synced usage found for this owner yet.", "warn")
+
+
+def format_number(value: int) -> str:
+    return f"{value:,}"
+
+
 def sync_once(args: argparse.Namespace, state: dict[str, Any]) -> None:
     events = collect_events(args)
     summaries = summarize_events(events)
@@ -681,11 +744,16 @@ def main() -> int:
     owner_profile = resolve_owner_profile(args)
     args.name = owner_profile["ownerName"]
     args.owner_id = owner_profile["ownerId"]
-    emit_banner(args)
+    if not args.report:
+        emit_banner(args)
     state = read_json(STATE_PATH, {"uploadedEventIds": []})
 
     if args.seed_fake_claude:
         seed_fake_claude_logs(args)
+
+    if args.report:
+        print_usage_report(args)
+        return 0
 
     if args.dry_run:
         sync_once(args, state)

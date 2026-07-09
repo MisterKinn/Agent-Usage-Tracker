@@ -19,6 +19,7 @@ dotenv.config({ path: [".env.local", ".env"] });
 
 const THREAD_RE = /thread(?:\.id|_id)=([0-9a-f-]{36})/;
 const TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__";
+const TRACKER_REPORT_URL = TRACKER_UPLOAD_URL.replace(/\/sync$/, "/report");
 const TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__";
 const DEFAULT_CODEX_DB = `${homedir()}/.codex/logs_2.sqlite`;
 const DEFAULT_CODEX_SESSION_INDEX = `${homedir()}/.codex/session_index.jsonl`;
@@ -36,6 +37,8 @@ function readArgs(argv) {
     agent: "all",
     once: false,
     dryRun: false,
+    report: false,
+    reportDays: 7,
     sinceDays: 7,
     maxEvents: 200,
     allHistory: false,
@@ -63,6 +66,12 @@ function readArgs(argv) {
     } else if (arg === "--dry-run") {
       args.dryRun = true;
       args.once = true;
+    } else if (arg === "--report") {
+      args.report = true;
+      args.once = true;
+    } else if (arg === "--report-days") {
+      args.reportDays = Number(argv[index + 1] ?? args.reportDays);
+      index += 1;
     } else if (arg === "--since-days") {
       args.sinceDays = Number(argv[index + 1] ?? args.sinceDays);
       index += 1;
@@ -475,6 +484,61 @@ async function requestJson(url, body) {
   return payload;
 }
 
+function formatNumber(value) {
+  return new Intl.NumberFormat("ko-KR").format(Number(value ?? 0));
+}
+
+async function printUsageReport(args) {
+  const payload = await requestJson(TRACKER_REPORT_URL, {
+    ownerId: args.ownerId,
+    days: args.reportDays,
+  });
+  const totals = payload.totals ?? {};
+  const agentTotals = payload.agentTotals ?? [];
+  const daily = payload.daily ?? [];
+  const trackerClient = payload.trackerClient ?? {};
+  const periodLabel = payload.periodDays > 0 ? `${payload.periodDays}d` : "all";
+
+  console.log("============================================================");
+  console.log("My Usage Report");
+  console.log(`owner           ${payload.ownerName ?? args.name}`);
+  console.log(`ownerId         ${args.ownerId}`);
+  console.log(`period          ${periodLabel}`);
+  console.log(`active          ${formatNumber(totals.activeTokens)}`);
+  console.log(`raw total       ${formatNumber(totals.totalTokens)}`);
+  console.log(`input           ${formatNumber(totals.inputTokens)}`);
+  console.log(`output          ${formatNumber(totals.outputTokens)}`);
+  console.log(`cached          ${formatNumber(totals.cachedTokens)}`);
+  console.log(`cache create    ${formatNumber(totals.cacheCreationTokens)}`);
+  console.log(`sessions        ${formatNumber(totals.sessions)}`);
+  console.log(`events          ${formatNumber(totals.events)}`);
+  if (trackerClient.lastSeenAt) {
+    console.log(`last seen       ${trackerClient.lastSeenAt}`);
+  }
+  console.log("============================================================");
+
+  if (agentTotals.length > 0) {
+    console.log("By Agent");
+    for (const item of agentTotals) {
+      console.log(
+        `  ${String(item.agent ?? "unknown").padEnd(8)}active=${formatNumber(item.activeTokens)} raw=${formatNumber(item.totalTokens)} events=${formatNumber(item.events)}`,
+      );
+    }
+    console.log("============================================================");
+  }
+
+  if (daily.length > 0) {
+    console.log("Recent Days");
+    for (const item of daily.slice(0, 12)) {
+      console.log(
+        `  ${String(item.dateKey ?? "-").padEnd(12)}${String(item.agent ?? "unknown").padEnd(8)}active=${formatNumber(item.activeTokens)} raw=${formatNumber(item.totalTokens)}`,
+      );
+    }
+  } else {
+    console.log("[agent-usage-tracker] No synced usage found for this owner yet.");
+  }
+}
+
 async function syncOnce({ args, state }) {
   const events = collectEvents(args);
   let summaries = summarizeEvents(events, args.ownerId, args.name);
@@ -558,6 +622,11 @@ async function main() {
   const ownerProfile = await resolveOwnerProfile(args);
   args.name = ownerProfile.ownerName;
   args.ownerId = ownerProfile.ownerId;
+
+  if (args.report) {
+    await printUsageReport(args);
+    return;
+  }
 
   if (args.dryRun) {
     const state = readState();

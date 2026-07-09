@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "track": "node scripts/track-agent-usage.mjs",
-    "track:once": "node scripts/track-agent-usage.mjs --once"
+    "track:once": "node scripts/track-agent-usage.mjs --once",
+    "track:report": "node scripts/track-agent-usage.mjs --report"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

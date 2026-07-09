@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "track": "node track-agent-usage.mjs",
-    "track:once": "node track-agent-usage.mjs --once"
+    "track:once": "node track-agent-usage.mjs --once",
+    "track:report": "node track-agent-usage.mjs --report"
   },
   "dependencies": {
     "dotenv": "^17.2.3",

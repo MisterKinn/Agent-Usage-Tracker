@@ -97,6 +97,14 @@ py -3 track_agent_usage.py --seed-fake-claude --once
 
 기본적으로 테스트용 Claude 이벤트 3개를 만들고 바로 업로드합니다. 더 많이 만들고 싶으면 `--seed-count 5` 같은 식으로 늘릴 수 있습니다.
 
+저장된 서버 집계를 본인 터미널에서 바로 확인하려면 아래처럼 실행합니다.
+
+```powershell
+cd $HOME\.agent-usage-tracker
+py -3 track_agent_usage.py --report
+py -3 track_agent_usage.py --report --report-days 30
+```
+
 개발자용 Node.js 설치 스크립트도 남겨두었지만, 팀원 배포 기본값은 Windows + Python 버전입니다.
 
 ## 개발자 실행 방법
@@ -136,6 +144,13 @@ npm run track -- --name "김성연"
 
 ```bash
 npm run track
+```
+
+저장된 서버 집계를 바로 확인하려면 아래 명령을 실행합니다.
+
+```bash
+npm run track:report
+npm run track:report -- --report-days 30
 ```
 
 이후에는 같은 프로젝트 폴더에서 아래 한 줄만 실행하면 됩니다.
