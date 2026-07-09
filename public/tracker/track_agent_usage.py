@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -112,6 +113,8 @@ def read_args() -> argparse.Namespace:
     parser.add_argument("--all-history", action="store_true")
     parser.add_argument("--interval-seconds", type=float, default=8)
     parser.add_argument("--upload-interval-seconds", type=float, default=600)
+    parser.add_argument("--seed-fake-claude", action="store_true")
+    parser.add_argument("--seed-count", type=int, default=3)
     parser.add_argument("--codex-db", default=str(Path.home() / ".codex" / "logs_2.sqlite"))
     parser.add_argument(
         "--codex-session-index",
@@ -392,6 +395,47 @@ def parse_claude_events(args: argparse.Namespace) -> list[dict[str, Any]]:
     return events
 
 
+def seed_fake_claude_logs(args: argparse.Namespace) -> Path:
+    projects_dir = Path(args.claude_projects_dir)
+    project_dir = projects_dir / "agent-usage-tracker-fake-usage"
+    session_id = f"fake-session-{uuid.uuid4().hex[:12]}"
+    session_path = project_dir / f"{session_id}.jsonl"
+
+    if project_dir.exists():
+        shutil.rmtree(project_dir)
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    seed_count = max(1, int(args.seed_count or 1))
+    base_time = time.time()
+    lines: list[str] = []
+    for index in range(seed_count):
+        timestamp = timestamp_iso(base_time - (seed_count - index - 1) * 120)
+        input_tokens = 1200 + index * 180
+        cache_read_tokens = 180 + index * 40
+        output_tokens = 720 + index * 110
+        payload = {
+            "type": "assistant",
+            "sessionId": session_id,
+            "cwd": str(project_dir),
+            "timestamp": timestamp,
+            "message": {
+                "id": f"fake-msg-{index + 1}",
+                "model": "claude-sonnet-4",
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": cache_read_tokens,
+                    "output_tokens": output_tokens,
+                },
+            },
+        }
+        lines.append(json.dumps(payload, ensure_ascii=False))
+
+    session_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    emit(f"seeded fake Claude usage: {session_path}", "ok")
+    return session_path
+
+
 def parse_iso_to_seconds(value: str) -> float:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
 
@@ -630,11 +674,18 @@ def explain_error(error: Exception) -> str:
 
 def main() -> int:
     args = read_args()
+    if args.seed_fake_claude and args.agent == "codex":
+        raise RuntimeError("--seed-fake-claude requires --agent all or --agent claude.")
+    if args.seed_fake_claude and args.agent == "all":
+        args.agent = "claude"
     owner_profile = resolve_owner_profile(args)
     args.name = owner_profile["ownerName"]
     args.owner_id = owner_profile["ownerId"]
     emit_banner(args)
     state = read_json(STATE_PATH, {"uploadedEventIds": []})
+
+    if args.seed_fake_claude:
+        seed_fake_claude_logs(args)
 
     if args.dry_run:
         sync_once(args, state)

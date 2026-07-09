@@ -88,6 +88,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create
 
 `--agent all`이 기본값이라 Codex와 Claude Code를 함께 추적합니다.
 
+윈도우에서 Claude/Codex 계정 없이 설치와 업로드 흐름만 테스트하려면, 가짜 Claude 사용 로그를 심은 뒤 1회 동기화를 실행할 수 있습니다.
+
+```powershell
+cd $HOME\.agent-usage-tracker
+py -3 track_agent_usage.py --seed-fake-claude --once
+```
+
+기본적으로 테스트용 Claude 이벤트 3개를 만들고 바로 업로드합니다. 더 많이 만들고 싶으면 `--seed-count 5` 같은 식으로 늘릴 수 있습니다.
+
 개발자용 Node.js 설치 스크립트도 남겨두었지만, 팀원 배포 기본값은 Windows + Python 버전입니다.
 
 ## 개발자 실행 방법
