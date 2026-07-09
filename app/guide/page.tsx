@@ -16,7 +16,6 @@ import {
     renameCommandFor,
     reportCommandFor,
     rerunCommandFor,
-    updateCommandFor,
     type OsKind,
 } from "@/lib/install-commands";
 import styles from "./guide.module.css";
@@ -24,7 +23,7 @@ import styles from "./guide.module.css";
 export default function GuidePage() {
     const [os, setOs] = useState<OsKind>("macos");
     const [copied, setCopied] = useState<
-        "install" | "rerun" | "rename" | "report" | "update" | null
+        "install" | "rerun" | "rename" | "report" | null
     >(null);
 
     useEffect(() => {
@@ -36,12 +35,9 @@ export default function GuidePage() {
     const rerunCommand = rerunCommandFor(os);
     const renameCommand = renameCommandFor(os);
     const reportCommand = reportCommandFor(os);
-    const updateCommand = updateCommandFor(os);
     const osLabel = isWindows ? "Windows" : "macOS / Linux";
 
-    async function copyCommand(
-        kind: "install" | "rerun" | "rename" | "report" | "update",
-    ) {
+    async function copyCommand(kind: "install" | "rerun" | "rename" | "report") {
         const command =
             kind === "install"
                 ? installCommand
@@ -49,9 +45,7 @@ export default function GuidePage() {
                   ? rerunCommand
                   : kind === "rename"
                     ? renameCommand
-                    : kind === "report"
-                      ? reportCommand
-                      : updateCommand;
+                    : reportCommand;
         await navigator.clipboard.writeText(command);
         setCopied(kind);
         window.setTimeout(() => {
@@ -77,7 +71,7 @@ export default function GuidePage() {
             <section className={styles.guideGrid}>
                 <article className={`feature-card ${styles.guideCard}`}>
                     <Terminal size={22} />
-                    <h2>처음 1회 설치</h2>
+                    <h2>처음 1회 설치 / 업데이트</h2>
                     <p>
                         {osLabel} 기준 설치 명령어입니다.
                         <br />이 명령어를 실행하면 사용자 로컬 홈 디렉토리에
@@ -85,6 +79,9 @@ export default function GuidePage() {
                         <br />
                         어떤 워크스페이스에서든 같은 트래커를 재사용할 수
                         있습니다.
+                        <br />
+                        리포트에 update available 이 보일 때도 같은 명령을 다시
+                        실행하면 최신 버전으로 덮어씁니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{installCommand}</code>
@@ -178,29 +175,6 @@ export default function GuidePage() {
                     </div>
                 </article>
 
-                <article className={`feature-card ${styles.guideCard}`}>
-                    <RotateCcw size={22} />
-                    <h2>트래커 업데이트</h2>
-                    <p>
-                        리포트에 update available 이 보이면 아래 명령으로
-                        최신 버전으로 덮어쓰면 됩니다.
-                    </p>
-                    <div className={`copy-command ${styles.guideCommand}`}>
-                        <code>{updateCommand}</code>
-                        <button
-                            className={`copy-command-button ${styles.guideCopyButton}${copied === "update" ? ` is-copied ${styles.isCopied}` : ""}`}
-                            type="button"
-                            onClick={() => copyCommand("update")}
-                        >
-                            {copied === "update" ? (
-                                <Check size={16} />
-                            ) : (
-                                <Copy size={16} />
-                            )}
-                            {copied === "update" ? "복사됨" : "복사"}
-                        </button>
-                    </div>
-                </article>
             </section>
 
             <section className={styles.guideSteps}>
@@ -230,13 +204,6 @@ export default function GuidePage() {
                             대시보드 열기
                         </Link>
                     </div>
-                </article>
-                <article className="feature-card">
-                    <Terminal size={22} />
-                    <h2>문제 해결</h2>
-                    <p>1. ownerId가 필요하면 터미널에서 `--report`를 실행합니다.</p>
-                    <p>2. 계정 페이지에서 ownerId를 연결하면 매칭이 정확해집니다.</p>
-                    <p>3. update available 이 보이면 업데이트 명령을 한 번 더 실행합니다.</p>
                 </article>
             </section>
         </main>
