@@ -28,7 +28,7 @@ export default function Home() {
     const isWindows = os === "windows";
     const command = installCommandFor(os);
     const osLabel = isWindows ? "Windows" : "macOS / Linux";
-    const title = isWindows ? "PowerShell 설치" : "터미널 설치";
+    const title = isWindows ? "터미널 설치" : "터미널 설치";
 
     async function copyCommand() {
         await navigator.clipboard.writeText(command);

@@ -48,6 +48,10 @@ export default function GuidePage() {
                 <p>
                     VSCode 터미널에서 첫 설치 명령어 입력 이후 재실행 명령어만
                     입력하면 됩니다.
+                    <br />
+                    Windows 및 macOS / Linux 환경에서 모두 동일하게 동작합니다.
+                    <br />
+                    최초 설치 시에는 PC에 Python이 설치되어 있어야 합니다.
                 </p>
             </section>
 
@@ -58,8 +62,10 @@ export default function GuidePage() {
                     <p>
                         {osLabel} 기준 설치 명령어입니다.
                         <br />이 명령어를 실행하면 사용자 로컬 홈 디렉토리에
-                        트래커가 설치되며 어떤 워크스페이스에서든 같은 트래커를
-                        재사용할 수 있습니다.
+                        트래커가 설치되며
+                        <br />
+                        어떤 워크스페이스에서든 같은 트래커를 재사용할 수
+                        있습니다.
                     </p>
                     <div className={`copy-command ${styles.guideCommand}`}>
                         <code>{installCommand}</code>
@@ -118,7 +124,8 @@ export default function GuidePage() {
                         트래커가 실행되면 AI 에이전트가 로컬에 남긴 로그 파일을
                         읽고
                         <br />
-                        토큰 변화가 있을 때만 감지되고, 최대 10분 간격으로 대시보드에 반영됩니다.
+                        토큰 사용량 변화를 기록한 뒤 10분 간격으로 대시보드에
+                        반영됩니다.
                     </p>
                     <div className="page-actions">
                         <Link className="button" href="/dashboard">
