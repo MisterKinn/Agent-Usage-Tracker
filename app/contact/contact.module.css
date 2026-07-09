@@ -154,6 +154,44 @@
     gap: 10px;
 }
 
+.statusGuide {
+    display: grid;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 14px;
+}
+
+.statusGuideItem {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+}
+
+.statusGuideItem svg {
+    color: var(--accent);
+    margin-top: 3px;
+}
+
+.statusGuideItem strong,
+.statusGuideItem span {
+    display: block;
+}
+
+.statusGuideItem strong {
+    color: var(--accent);
+    font-size: 13px;
+}
+
+.statusGuideItem span {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+    margin-top: 4px;
+}
+
 .historyItem {
     display: grid;
     gap: 8px;

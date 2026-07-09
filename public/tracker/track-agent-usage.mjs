@@ -19,7 +19,10 @@ dotenv.config({ path: [".env.local", ".env"] });
 
 const THREAD_RE = /thread(?:\.id|_id)=([0-9a-f-]{36})/;
 const TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__";
+const TRACKER_VERSION = "__AGENT_TRACKER_VERSION__";
 const TRACKER_REPORT_URL = TRACKER_UPLOAD_URL.replace(/\/sync$/, "/report");
+const TRACKER_PROFILE_URL = TRACKER_UPLOAD_URL.replace(/\/sync$/, "/profile");
+const TRACKER_VERSION_URL = TRACKER_UPLOAD_URL.replace(/\/sync$/, "/version");
 const TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__";
 const DEFAULT_CODEX_DB = `${homedir()}/.codex/logs_2.sqlite`;
 const DEFAULT_CODEX_SESSION_INDEX = `${homedir()}/.codex/session_index.jsonl`;
@@ -488,7 +491,39 @@ function formatNumber(value) {
   return new Intl.NumberFormat("ko-KR").format(Number(value ?? 0));
 }
 
+function compareVersions(left, right) {
+  const leftParts = String(left)
+    .match(/\d+/g)
+    ?.map(Number) ?? [];
+  const rightParts = String(right)
+    .match(/\d+/g)
+    ?.map(Number) ?? [];
+  const size = Math.max(leftParts.length, rightParts.length);
+  while (leftParts.length < size) leftParts.push(0);
+  while (rightParts.length < size) rightParts.push(0);
+  for (let index = 0; index < size; index += 1) {
+    if (leftParts[index] > rightParts[index]) return 1;
+    if (leftParts[index] < rightParts[index]) return -1;
+  }
+  return 0;
+}
+
+async function syncOwnerName(args) {
+  await requestJson(TRACKER_PROFILE_URL, {
+    ownerId: args.ownerId,
+    ownerName: args.name,
+  });
+}
+
 async function printUsageReport(args) {
+  const versionPayload = await fetch(TRACKER_VERSION_URL, {
+    headers: {
+      authorization: `Bearer ${TRACKER_WRITE_TOKEN}`,
+    },
+  }).then((response) => response.json());
+  const latestVersion = versionPayload.trackerVersion ?? TRACKER_VERSION;
+  const versionState = compareVersions(TRACKER_VERSION, latestVersion);
+  const versionLabel = versionState < 0 ? "update available" : "up to date";
   const payload = await requestJson(TRACKER_REPORT_URL, {
     ownerId: args.ownerId,
     days: args.reportDays,
@@ -503,6 +538,10 @@ async function printUsageReport(args) {
   console.log("My Usage Report");
   console.log(`owner           ${payload.ownerName ?? args.name}`);
   console.log(`ownerId         ${args.ownerId}`);
+  console.log(`tracker         ${TRACKER_VERSION} (${versionLabel})`);
+  if (versionState < 0) {
+    console.log(`latest          ${latestVersion}`);
+  }
   console.log(`period          ${periodLabel}`);
   console.log(`active          ${formatNumber(totals.activeTokens)}`);
   console.log(`raw total       ${formatNumber(totals.totalTokens)}`);
@@ -517,11 +556,20 @@ async function printUsageReport(args) {
   }
   console.log("============================================================");
 
+  const rawTotal = Number(totals.totalTokens ?? 0);
+  const activeTotal = Number(totals.activeTokens ?? 0);
+  if (rawTotal > 0) {
+    const cachedShare = ((Math.max(rawTotal - activeTotal, 0) / rawTotal) * 100).toFixed(1);
+    console.log(`note            active excludes cached-read tokens (${cachedShare}% cached impact)`);
+    console.log("============================================================");
+  }
+
   if (agentTotals.length > 0) {
     console.log("By Agent");
+    const totalActive = Math.max(activeTotal, 1);
     for (const item of agentTotals) {
       console.log(
-        `  ${String(item.agent ?? "unknown").padEnd(8)}active=${formatNumber(item.activeTokens)} raw=${formatNumber(item.totalTokens)} events=${formatNumber(item.events)}`,
+        `  ${String(item.agent ?? "unknown").padEnd(8)}active=${formatNumber(item.activeTokens)} raw=${formatNumber(item.totalTokens)} share=${(((Number(item.activeTokens ?? 0) / totalActive) * 100)).toFixed(1).padStart(5)}% events=${formatNumber(item.events)}`,
       );
     }
     console.log("============================================================");
@@ -622,6 +670,9 @@ async function main() {
   const ownerProfile = await resolveOwnerProfile(args);
   args.name = ownerProfile.ownerName;
   args.ownerId = ownerProfile.ownerId;
+  if (args.nameProvided) {
+    await syncOwnerName(args);
+  }
 
   if (args.report) {
     await printUsageReport(args);

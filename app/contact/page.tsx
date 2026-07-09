@@ -1,6 +1,6 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { CheckCircle2, Clock3, Send, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -48,6 +48,16 @@ function mapMyMessage(id: string, data: DocumentData): MyMessage {
         status: data.status ?? "new",
         createdAt: asDate(data.createdAt),
     };
+}
+
+function statusLabel(status: string) {
+    if (status === "resolved") {
+        return "해결 완료";
+    }
+    if (status === "in-progress" || status === "in_progress") {
+        return "확인 중";
+    }
+    return "접수됨";
 }
 
 export default function ContactPage() {
@@ -257,6 +267,38 @@ export default function ContactPage() {
                                         진행 중 {openMessageCount}
                                     </span>
                                 </div>
+                                <div className={styles.statusGuide}>
+                                    <div className={styles.statusGuideItem}>
+                                        <Sparkles size={16} />
+                                        <div>
+                                            <strong>접수됨</strong>
+                                            <span>
+                                                문의가 저장되었고 아직 확인 전인
+                                                상태입니다.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.statusGuideItem}>
+                                        <Clock3 size={16} />
+                                        <div>
+                                            <strong>확인 중</strong>
+                                            <span>
+                                                재현이나 원인 파악을 진행하는
+                                                단계입니다.
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.statusGuideItem}>
+                                        <CheckCircle2 size={16} />
+                                        <div>
+                                            <strong>해결 완료</strong>
+                                            <span>
+                                                조치가 끝났거나 답변이 정리된
+                                                상태입니다.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className={styles.historyList}>
                                     {myMessages.length ? (
                                         myMessages.map((item) => (
@@ -272,7 +314,7 @@ export default function ContactPage() {
                                                     <span
                                                         className={styles.statusBadge}
                                                     >
-                                                        {item.status}
+                                                        {statusLabel(item.status)}
                                                     </span>
                                                 </div>
                                                 <div className={styles.ticketCode}>

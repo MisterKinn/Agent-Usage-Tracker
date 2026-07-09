@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import {
+    collection,
+    limit,
+    onSnapshot,
+    query,
+    where,
+    type DocumentData,
+} from "firebase/firestore";
+import {
     EmailAuthProvider,
     onAuthStateChanged,
     reauthenticateWithCredential,
@@ -10,11 +18,65 @@ import {
     updateProfile,
     type User,
 } from "firebase/auth";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LogOut, Mail, ShieldCheck, UserRound } from "lucide-react";
-import { auth, hasFirebaseConfig } from "@/lib/firebase";
+import {
+    Activity,
+    Copy,
+    LogOut,
+    Mail,
+    TerminalSquare,
+    UserRound,
+} from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import {
+    detectOsFromNavigator,
+    reportCommandFor,
+    type OsKind,
+} from "@/lib/install-commands";
 import { syncUserProfile } from "@/lib/user-profile";
+import {
+    activeTokenCount,
+    formatNumber,
+    toDate,
+    type UsageSummary,
+} from "@/lib/usage";
+
+function mapSummary(id: string, data: DocumentData): UsageSummary {
+    return {
+        id,
+        summaryId: data.summaryId ?? id,
+        dateKey: data.dateKey ?? "",
+        agent: data.agent ?? "unknown",
+        ownerName: data.ownerName ?? "unassigned",
+        ownerId: data.ownerId ?? "",
+        authUid: data.authUid ?? "",
+        authEmail: data.authEmail ?? "",
+        events: Number(data.events ?? 0),
+        sessions: Number(data.sessions ?? 0),
+        inputTokens: Number(data.inputTokens ?? 0),
+        cachedTokens: Number(data.cachedTokens ?? 0),
+        cacheCreationTokens: Number(data.cacheCreationTokens ?? 0),
+        outputTokens: Number(data.outputTokens ?? 0),
+        reasoningTokens: Number(data.reasoningTokens ?? 0),
+        totalTokens: Number(data.totalTokens ?? 0),
+        source: data.source ?? "daily-agent-summary",
+        lastCompletedAt: data.lastCompletedAt ?? null,
+        syncedAt: data.syncedAt ?? null,
+    };
+}
+
+function recentDateKeys(days: number) {
+    return Array.from({ length: days }, (_, index) => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - index);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    });
+}
 
 function readableAccountError(error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -43,6 +105,9 @@ export default function AccountPage() {
     const [passwordMessage, setPasswordMessage] = useState("");
     const [profileError, setProfileError] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const [viewerOs, setViewerOs] = useState<OsKind>("macos");
+    const [usageRows, setUsageRows] = useState<UsageSummary[]>([]);
+    const [commandCopied, setCommandCopied] = useState(false);
 
     useEffect(() => {
         if (!auth) {
@@ -57,11 +122,71 @@ export default function AccountPage() {
         });
     }, []);
 
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        setViewerOs(detectOsFromNavigator());
+    }, []);
+
+    useEffect(() => {
+        if (!db || !user?.displayName?.trim()) {
+            setUsageRows([]);
+            return;
+        }
+
+        return onSnapshot(
+            query(
+                collection(db, "usageDailySummaries"),
+                where("ownerName", "==", user.displayName.trim()),
+                limit(365),
+            ),
+            (snapshot) => {
+                setUsageRows(
+                    snapshot.docs
+                        .map((item) => mapSummary(item.id, item.data()))
+                        .sort(
+                            (a, b) =>
+                                (toDate(b.lastCompletedAt)?.getTime() ?? 0) -
+                                (toDate(a.lastCompletedAt)?.getTime() ?? 0),
+                        ),
+                );
+            },
+        );
+    }, [user?.displayName]);
+
     const passwordProviderEnabled = Boolean(
         user?.providerData.some(
             (provider) => provider.providerId === "password",
         ),
     );
+    const recent7dKeys = useMemo(() => new Set(recentDateKeys(7)), []);
+    const recent30dKeys = useMemo(() => new Set(recentDateKeys(30)), []);
+    const usageSummary = useMemo(() => {
+        const active7d = usageRows
+            .filter((item) => recent7dKeys.has(item.dateKey))
+            .reduce((sum, item) => sum + activeTokenCount(item), 0);
+        const active30d = usageRows
+            .filter((item) => recent30dKeys.has(item.dateKey))
+            .reduce((sum, item) => sum + activeTokenCount(item), 0);
+        const sessions30d = usageRows
+            .filter((item) => recent30dKeys.has(item.dateKey))
+            .reduce((sum, item) => sum + item.sessions, 0);
+        const events30d = usageRows
+            .filter((item) => recent30dKeys.has(item.dateKey))
+            .reduce((sum, item) => sum + item.events, 0);
+        const latest = usageRows[0] ?? null;
+
+        return {
+            active7d,
+            active30d,
+            sessions30d,
+            events30d,
+            latest,
+        };
+    }, [recent30dKeys, recent7dKeys, usageRows]);
+    const reportCommand = reportCommandFor(viewerOs);
 
     async function submitProfile(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -114,6 +239,16 @@ export default function AccountPage() {
         }
     }
 
+    async function copyReportCommand() {
+        try {
+            await navigator.clipboard.writeText(reportCommand);
+            setCommandCopied(true);
+            window.setTimeout(() => setCommandCopied(false), 1400);
+        } catch {
+            setCommandCopied(false);
+        }
+    }
+
     async function handleSignOut() {
         if (!auth) {
             router.push("/");
@@ -132,6 +267,50 @@ export default function AccountPage() {
                 <p>대시보드 접근 상태와 로그인 정보를 확인합니다.</p>
             </section>
 
+            <section className="summary-grid">
+                <article className="metric">
+                    <span>my active 7d</span>
+                    <strong>{formatNumber(usageSummary.active7d)}</strong>
+                    <small>최근 7일 active token</small>
+                </article>
+                <article className="metric">
+                    <span>my active 30d</span>
+                    <strong>{formatNumber(usageSummary.active30d)}</strong>
+                    <small>최근 30일 active token</small>
+                </article>
+                <article className="metric">
+                    <span>sessions 30d</span>
+                    <strong>{formatNumber(usageSummary.sessions30d)}</strong>
+                    <small>최근 30일 세션 수</small>
+                </article>
+                <article className="metric">
+                    <span>events 30d</span>
+                    <strong>{formatNumber(usageSummary.events30d)}</strong>
+                    <small>최근 30일 응답 수</small>
+                </article>
+                <article className="metric">
+                    <span>last sync</span>
+                    <strong>
+                        {usageSummary.latest
+                            ? (
+                                  toDate(
+                                      usageSummary.latest.lastCompletedAt,
+                                  ) ?? new Date()
+                              ).toLocaleTimeString("ko-KR")
+                            : "-"}
+                    </strong>
+                    <small>
+                        {usageSummary.latest
+                            ? (
+                                  toDate(
+                                      usageSummary.latest.lastCompletedAt,
+                                  ) ?? new Date()
+                              ).toLocaleDateString("ko-KR")
+                            : "트래커 기록 없음"}
+                    </small>
+                </article>
+            </section>
+
             <section className="settings-list">
                 <article className="settings-row">
                     <Mail size={22} />
@@ -148,6 +327,37 @@ export default function AccountPage() {
                             {user?.displayName ??
                                 "아직 설정된 이름이 없습니다."}
                         </p>
+                    </div>
+                </article>
+                <article className="settings-row">
+                    <TerminalSquare size={22} />
+                    <div>
+                        <h2>내 사용량 바로 보기</h2>
+                        <p>
+                            터미널에서 한 줄로 내 사용량 리포트를 바로 확인할 수
+                            있습니다.
+                        </p>
+                        <div className="copy-command" style={{ marginTop: 14 }}>
+                            <code>{reportCommand}</code>
+                            <button
+                                className={`copy-command-button${commandCopied ? " is-copied" : ""}`}
+                                type="button"
+                                onClick={copyReportCommand}
+                            >
+                                <Copy size={16} />
+                                {commandCopied ? "복사됨" : "복사"}
+                            </button>
+                        </div>
+                        <div className="page-actions" style={{ marginTop: 12 }}>
+                            <Link className="button secondary" href="/dashboard">
+                                <Activity size={18} />
+                                대시보드 보기
+                            </Link>
+                        </div>
+                        <div className="notice" style={{ marginTop: 12 }}>
+                            현재 로그인 이름과 로컬 트래커 이름이 같을 때 내
+                            사용량 카드가 정확히 연결됩니다.
+                        </div>
                     </div>
                 </article>
             </section>

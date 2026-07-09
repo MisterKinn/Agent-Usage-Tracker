@@ -34,7 +34,10 @@ LEGACY_CONFIG_PATH = ROOT / ".tracker-config.json"
 STATE_PATH = ROOT / ".tracker-state.json"
 TRACKER_UPLOAD_URL = "__AGENT_TRACKER_UPLOAD_URL__"
 TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__"
+TRACKER_VERSION = "__AGENT_TRACKER_VERSION__"
 TRACKER_REPORT_URL = TRACKER_UPLOAD_URL.rsplit("/", 1)[0] + "/report"
+TRACKER_PROFILE_URL = TRACKER_UPLOAD_URL.rsplit("/", 1)[0] + "/profile"
+TRACKER_VERSION_URL = TRACKER_UPLOAD_URL.rsplit("/", 1)[0] + "/version"
 ANSI = {
     "reset": "\033[0m",
     "dim": "\033[2m",
@@ -125,6 +128,7 @@ def read_args() -> argparse.Namespace:
     )
     parser.add_argument("--claude-projects-dir", default=str(Path.home() / ".claude" / "projects"))
     args = parser.parse_args()
+    args.name_provided = bool(str(args.name).strip())
     if args.dry_run:
         args.once = True
     if args.all_history:
@@ -527,7 +531,7 @@ def summarize_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def request_json(url: str, method: str, body: dict[str, Any], token: str = "") -> dict[str, Any]:
-    data = json.dumps(body).encode("utf-8")
+    data = None if method.upper() == "GET" else json.dumps(body).encode("utf-8")
     headers = {"content-type": "application/json"}
     if token:
         headers["authorization"] = f"Bearer {token}"
@@ -545,14 +549,16 @@ def request_json(url: str, method: str, body: dict[str, Any], token: str = "") -
 def request_json_with_curl(
     url: str,
     method: str,
-    data: bytes,
+    data: bytes | None,
     headers: dict[str, str],
     original_error: Exception,
 ) -> dict[str, Any]:
     command = ["curl", "-sSL", "-X", method]
     for key, value in headers.items():
         command.extend(["-H", f"{key}: {value}"])
-    command.extend(["--data-binary", "@-", url])
+    if data is not None:
+        command.extend(["--data-binary", "@-"])
+    command.append(url)
 
     try:
         result = subprocess.run(
@@ -591,7 +597,55 @@ def describe_api_error(error: Any) -> str:
     return f"API error: {error}"
 
 
+def parse_version_parts(version: str) -> list[int]:
+    parts = []
+    for token in re.findall(r"\d+", version):
+        try:
+            parts.append(int(token))
+        except ValueError:
+            parts.append(0)
+    return parts
+
+
+def compare_versions(left: str, right: str) -> int:
+    left_parts = parse_version_parts(left)
+    right_parts = parse_version_parts(right)
+    size = max(len(left_parts), len(right_parts))
+    left_parts.extend([0] * (size - len(left_parts)))
+    right_parts.extend([0] * (size - len(right_parts)))
+    for left_value, right_value in zip(left_parts, right_parts):
+        if left_value > right_value:
+            return 1
+        if left_value < right_value:
+            return -1
+    return 0
+
+
+def sync_owner_name(args: argparse.Namespace) -> None:
+    request_json(
+        TRACKER_PROFILE_URL,
+        "POST",
+        {
+            "ownerId": args.owner_id,
+            "ownerName": args.name,
+        },
+        token=TRACKER_WRITE_TOKEN,
+    )
+
+
+def fetch_tracker_version() -> dict[str, Any]:
+    return request_json(TRACKER_VERSION_URL, "GET", {}, token="")
+
+
 def print_usage_report(args: argparse.Namespace) -> None:
+    version_payload = fetch_tracker_version()
+    latest_version = str(version_payload.get("trackerVersion") or TRACKER_VERSION)
+    version_state = compare_versions(TRACKER_VERSION, latest_version)
+    version_label = (
+        "update available"
+        if version_state < 0
+        else "up to date"
+    )
     payload = request_json(
         TRACKER_REPORT_URL,
         "POST",
@@ -610,6 +664,9 @@ def print_usage_report(args: argparse.Namespace) -> None:
     print(paint("My Usage Report", "bold", "cyan"))
     print(f"{paint('owner', 'dim'):<16}{payload.get('ownerName') or args.name}")
     print(f"{paint('ownerId', 'dim'):<16}{args.owner_id}")
+    print(f"{paint('tracker', 'dim'):<16}{TRACKER_VERSION} ({version_label})")
+    if version_state < 0:
+        print(f"{paint('latest', 'dim'):<16}{latest_version}")
     print(f"{paint('period', 'dim'):<16}{period_label}")
     print(f"{paint('active', 'dim'):<16}{format_number(int(totals.get('activeTokens') or 0))}")
     print(f"{paint('raw total', 'dim'):<16}{format_number(int(totals.get('totalTokens') or 0))}")
@@ -623,13 +680,25 @@ def print_usage_report(args: argparse.Namespace) -> None:
         print(f"{paint('last seen', 'dim'):<16}{tracker_client['lastSeenAt']}")
     print(line)
 
+    raw_total = int(totals.get("totalTokens") or 0)
+    active_total = int(totals.get("activeTokens") or 0)
+    if raw_total > 0:
+        cached_share = max(raw_total - active_total, 0) / raw_total * 100
+        print(
+            f"{paint('note', 'dim'):<16}"
+            f"active excludes cached-read tokens ({cached_share:.1f}% cached impact)"
+        )
+        print(line)
+
     if agent_totals:
         print(paint("By Agent", "bold"))
+        total_active = max(active_total, 1)
         for item in agent_totals:
             print(
                 f"  {item.get('agent', 'unknown'):<8}"
                 f"active={format_number(int(item.get('activeTokens') or 0))} "
                 f"raw={format_number(int(item.get('totalTokens') or 0))} "
+                f"share={(int(item.get('activeTokens') or 0) / total_active) * 100:5.1f}% "
                 f"events={format_number(int(item.get('events') or 0))}"
             )
         print(line)
@@ -744,6 +813,8 @@ def main() -> int:
     owner_profile = resolve_owner_profile(args)
     args.name = owner_profile["ownerName"]
     args.owner_id = owner_profile["ownerId"]
+    if args.name_provided:
+        sync_owner_name(args)
     if not args.report:
         emit_banner(args)
     state = read_json(STATE_PATH, {"uploadedEventIds": []})

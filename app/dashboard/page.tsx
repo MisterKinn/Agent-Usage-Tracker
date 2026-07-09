@@ -14,6 +14,7 @@ import {
     Activity,
     BarChart3,
     CalendarRange,
+    Download,
     LogOut,
     Radio,
     Scale,
@@ -91,6 +92,7 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
 
 type TrendMode = "absolute" | "normalized";
 type PeriodFilter = "7d" | "30d" | "all";
+type AgentFilter = "all" | "codex" | "claude";
 
 function uniqueSortedDateKeys(items: UsageSummary[]) {
     return Array.from(
@@ -104,6 +106,7 @@ export default function DashboardPage() {
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
     const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("7d");
+    const [agentFilter, setAgentFilter] = useState<AgentFilter>("all");
     const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
     const [selectedSummaryId, setSelectedSummaryId] = useState("");
 
@@ -162,12 +165,15 @@ export default function DashboardPage() {
                 if (!activeDateKeySet.has(item.dateKey)) {
                     return false;
                 }
+                if (agentFilter !== "all" && item.agent !== agentFilter) {
+                    return false;
+                }
                 if (selectedOwners.length > 0) {
                     return selectedOwners.includes(item.ownerId || item.ownerName);
                 }
                 return true;
             }),
-        [activeDateKeySet, selectedOwners, summaries],
+        [activeDateKeySet, agentFilter, selectedOwners, summaries],
     );
     const summary = useMemo(
         () => summarizeByOwner(filteredSummaries),
@@ -233,6 +239,55 @@ export default function DashboardPage() {
                 ? current.filter((item) => item !== ownerKey)
                 : [...current, ownerKey],
         );
+    }
+
+    function exportSummaries(format: "csv" | "json") {
+        const rows = filteredSummaries.map((item) => ({
+            time:
+                toDate(item.lastCompletedAt)?.toLocaleString("ko-KR") ?? "-",
+            agent: item.agent,
+            ownerName: item.ownerName,
+            ownerId: item.ownerId,
+            dateKey: item.dateKey,
+            activeTokens: activeTokenCount(item),
+            totalTokens: item.totalTokens,
+            inputTokens: item.inputTokens,
+            outputTokens: item.outputTokens,
+            cachedTokens: item.cachedTokens,
+            cacheCreationTokens: item.cacheCreationTokens,
+            reasoningTokens: item.reasoningTokens,
+            sessions: item.sessions,
+            events: item.events,
+            source: item.source,
+        }));
+
+        const filename = `agent-usage-${periodFilter}-${agentFilter}.${format}`;
+        const content =
+            format === "json"
+                ? JSON.stringify(rows, null, 2)
+                : [
+                      Object.keys(rows[0] ?? {}).join(","),
+                      ...rows.map((row) =>
+                          Object.values(row)
+                              .map((value) =>
+                                  `"${String(value ?? "").replaceAll('"', '""')}"`,
+                              )
+                              .join(","),
+                      ),
+                  ].join("\n");
+
+        const blob = new Blob([content], {
+            type:
+                format === "json"
+                    ? "application/json"
+                    : "text/csv;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
     }
 
     useEffect(() => {
@@ -472,6 +527,24 @@ export default function DashboardPage() {
                                     <option value="all">전체</option>
                                 </select>
                             </label>
+                            <div className={styles.modeToggle}>
+                                {(["all", "codex", "claude"] as AgentFilter[]).map(
+                                    (item) => (
+                                        <button
+                                            className={
+                                                agentFilter === item
+                                                    ? styles.modeButtonActive
+                                                    : styles.modeButton
+                                            }
+                                            key={item}
+                                            type="button"
+                                            onClick={() => setAgentFilter(item)}
+                                        >
+                                            {item}
+                                        </button>
+                                    ),
+                                )}
+                            </div>
                             <div
                                 className={styles.modeToggle}
                                 role="tablist"
@@ -798,6 +871,24 @@ export default function DashboardPage() {
                 <article className="table-panel">
                     <div className="panel-header table-title">
                         <h2>최근 일자 집계</h2>
+                        <div className="page-actions">
+                            <button
+                                className="button secondary"
+                                type="button"
+                                onClick={() => exportSummaries("csv")}
+                            >
+                                <Download size={16} />
+                                CSV
+                            </button>
+                            <button
+                                className="button secondary"
+                                type="button"
+                                onClick={() => exportSummaries("json")}
+                            >
+                                <Download size={16} />
+                                JSON
+                            </button>
+                        </div>
                     </div>
                     <table>
                         <thead>
