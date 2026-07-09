@@ -1,6 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { adminAuth, adminDb, adminStorage } from "@/lib/firebase-admin";
 
 function env(name: string) {
     return process.env[name]?.trim();
@@ -38,23 +38,53 @@ export async function POST(request: Request) {
             return jsonError("제목과 문의 내용을 입력해 주세요.", 400);
         }
 
+        const messageRef = adminDb().collection("contactMessages").doc();
+        const storageBucket = adminStorage().bucket();
+
         const attachments = await Promise.all(
             files.map(async (file) => {
                 const buffer = Buffer.from(await file.arrayBuffer());
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+                const storagePath = [
+                    "contact-attachments",
+                    decoded.uid,
+                    messageRef.id,
+                    `${Date.now()}-${safeName}`,
+                ].join("/");
+                const bucketFile = storageBucket.file(storagePath);
+
+                await bucketFile.save(buffer, {
+                    contentType: file.type || "application/octet-stream",
+                    resumable: false,
+                    metadata: {
+                        cacheControl: "private, max-age=31536000",
+                        contentDisposition: `attachment; filename="${encodeURIComponent(file.name)}"`,
+                    },
+                });
+
+                const [url] = await bucketFile.getSignedUrl({
+                    action: "read",
+                    expires: "2099-12-31",
+                });
+
                 return {
                     content: buffer.toString("base64"),
                     filename: file.name,
+                    path: storagePath,
                     size: file.size,
                     type: file.type || "application/octet-stream",
+                    url,
                 };
             }),
         );
 
-        const messageRef = await adminDb().collection("contactMessages").add({
+        await messageRef.set({
             attachments: attachments.map((item) => ({
                 name: item.filename,
+                path: item.path,
                 size: item.size,
                 type: item.type,
+                url: item.url,
             })),
             authEmail: decoded.email ?? "",
             authUid: decoded.uid,

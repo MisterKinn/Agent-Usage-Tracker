@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -21,6 +22,9 @@ function adminApp() {
       clientEmail: requireEnv("FIREBASE_ADMIN_CLIENT_EMAIL"),
       privateKey: requireEnv("FIREBASE_ADMIN_PRIVATE_KEY").replace(/\\n/g, "\n"),
     }),
+    storageBucket:
+      process.env.FIREBASE_ADMIN_STORAGE_BUCKET?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim(),
   });
 }
 
@@ -30,4 +34,8 @@ export function adminDb() {
 
 export function adminAuth() {
   return getAuth(adminApp());
+}
+
+export function adminStorage() {
+  return getStorage(adminApp());
 }

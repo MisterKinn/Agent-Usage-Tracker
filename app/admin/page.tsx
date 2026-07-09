@@ -409,7 +409,10 @@ export default function AdminPage() {
                 deletedUsage: number;
             }>("/api/admin/tracked-owners", {
                 method: "DELETE",
-                body: JSON.stringify({ ownerId: owner.ownerId }),
+                body: JSON.stringify({
+                    ownerId: owner.ownerId,
+                    ownerName: owner.ownerName,
+                }),
             });
 
             setActionMessage(
@@ -444,6 +447,7 @@ export default function AdminPage() {
                 body: JSON.stringify({
                     ownerId: owner.ownerId,
                     ownerName: nextName,
+                    previousOwnerName: owner.ownerName,
                 }),
             });
 

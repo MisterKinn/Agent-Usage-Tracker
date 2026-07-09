@@ -133,88 +133,94 @@ function summarizeEvents(
 }
 
 export async function POST(request: Request) {
-  const expectedToken = process.env.TRACKER_WRITE_TOKEN?.trim();
-  if (!expectedToken) {
-    return jsonError("TRACKER_WRITE_TOKEN is not configured.", 503);
-  }
-
-  const authorization = request.headers.get("authorization") ?? "";
-  if (authorization !== `Bearer ${expectedToken}`) {
-    return jsonError("Unauthorized tracker request.", 401);
-  }
-
-  const body = (await request.json()) as TrackerSyncPayload;
-  const ownerId = asNonEmptyString(body.ownerId);
-  const ownerName = asNonEmptyString(body.ownerName, "unassigned");
-  const agent = asNonEmptyString(body.agent, "all");
-  const workspacePath = asNonEmptyString(body.workspacePath);
-  const trackerPath = asNonEmptyString(body.trackerPath);
-  const trackerSource = asNonEmptyString(body.trackerSource, "local-agent-log");
-  const summaries = Array.isArray(body.summaries) ? body.summaries : [];
-  const events = Array.isArray(body.events) ? body.events : [];
-
-  if (!ownerId) {
-    return jsonError("ownerId is required.", 400);
-  }
-
-  const normalizedSummaries =
-    summaries.length > 0 ? summaries : summarizeEvents(events, ownerId, ownerName);
-
-  const now = new Date();
-  const db = adminDb();
-  const batch = db.batch();
-
-  batch.set(
-    db.collection("trackerClients").doc(ownerId),
-    {
-      ownerId,
-      ownerName,
-      agent,
-      lastSeenAt: FieldValue.serverTimestamp(),
-      lastWorkspacePath: workspacePath,
-      trackerPath,
-      source: trackerSource,
-    },
-    { merge: true },
-  );
-
-  let summaryWrites = 0;
-  for (const summary of normalizedSummaries) {
-    const summaryId = asNonEmptyString(summary.summaryId);
-    if (!summaryId) {
-      continue;
+  try {
+    const expectedToken = process.env.TRACKER_WRITE_TOKEN?.trim();
+    if (!expectedToken) {
+      return jsonError("TRACKER_WRITE_TOKEN is not configured.", 503);
     }
 
+    const authorization = request.headers.get("authorization") ?? "";
+    if (authorization !== `Bearer ${expectedToken}`) {
+      return jsonError("Unauthorized tracker request.", 401);
+    }
+
+    const body = (await request.json()) as TrackerSyncPayload;
+    const ownerId = asNonEmptyString(body.ownerId);
+    const ownerName = asNonEmptyString(body.ownerName, "unassigned");
+    const agent = asNonEmptyString(body.agent, "all");
+    const workspacePath = asNonEmptyString(body.workspacePath);
+    const trackerPath = asNonEmptyString(body.trackerPath);
+    const trackerSource = asNonEmptyString(body.trackerSource, "local-agent-log");
+    const summaries = Array.isArray(body.summaries) ? body.summaries : [];
+    const events = Array.isArray(body.events) ? body.events : [];
+
+    if (!ownerId) {
+      return jsonError("ownerId is required.", 400);
+    }
+
+    const normalizedSummaries =
+      summaries.length > 0 ? summaries : summarizeEvents(events, ownerId, ownerName);
+
+    const now = new Date();
+    const db = adminDb();
+    const batch = db.batch();
+
     batch.set(
-      db.collection("usageDailySummaries").doc(summaryId.replaceAll("/", "_")),
+      db.collection("trackerClients").doc(ownerId),
       {
-        summaryId,
-        dateKey: asNonEmptyString(summary.dateKey),
         ownerId,
-        ownerName: asNonEmptyString(summary.ownerName, ownerName),
-        agent: asNonEmptyString(summary.agent, agent),
-        events: asNumber(summary.events),
-        sessions: asNumber(summary.sessions),
-        inputTokens: asNumber(summary.inputTokens),
-        cachedTokens: asNumber(summary.cachedTokens),
-        cacheCreationTokens: asNumber(summary.cacheCreationTokens),
-        outputTokens: asNumber(summary.outputTokens),
-        reasoningTokens: asNumber(summary.reasoningTokens),
-        totalTokens: asNumber(summary.totalTokens),
-        lastCompletedAt: parseIsoTimestamp(summary.lastCompletedAt, now),
-        source: asNonEmptyString(summary.source, "daily-agent-summary"),
-        syncedAt: FieldValue.serverTimestamp(),
+        ownerName,
+        agent,
+        lastSeenAt: FieldValue.serverTimestamp(),
+        lastWorkspacePath: workspacePath,
+        trackerPath,
+        source: trackerSource,
       },
       { merge: true },
     );
-    summaryWrites += 1;
+
+    let summaryWrites = 0;
+    for (const summary of normalizedSummaries) {
+      const summaryId = asNonEmptyString(summary.summaryId);
+      if (!summaryId) {
+        continue;
+      }
+
+      batch.set(
+        db.collection("usageDailySummaries").doc(summaryId.replaceAll("/", "_")),
+        {
+          summaryId,
+          dateKey: asNonEmptyString(summary.dateKey),
+          ownerId,
+          ownerName: asNonEmptyString(summary.ownerName, ownerName),
+          agent: asNonEmptyString(summary.agent, agent),
+          events: asNumber(summary.events),
+          sessions: asNumber(summary.sessions),
+          inputTokens: asNumber(summary.inputTokens),
+          cachedTokens: asNumber(summary.cachedTokens),
+          cacheCreationTokens: asNumber(summary.cacheCreationTokens),
+          outputTokens: asNumber(summary.outputTokens),
+          reasoningTokens: asNumber(summary.reasoningTokens),
+          totalTokens: asNumber(summary.totalTokens),
+          lastCompletedAt: parseIsoTimestamp(summary.lastCompletedAt, now),
+          source: asNonEmptyString(summary.source, "daily-agent-summary"),
+          syncedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      summaryWrites += 1;
+    }
+
+    await batch.commit();
+
+    return NextResponse.json({
+      ok: true,
+      ownerId,
+      summaryWrites,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync tracker usage.";
+    return jsonError(message, 500);
   }
-
-  await batch.commit();
-
-  return NextResponse.json({
-    ok: true,
-    ownerId,
-    summaryWrites,
-  });
 }

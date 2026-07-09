@@ -6,20 +6,52 @@ function jsonError(message: string, status: number) {
     return NextResponse.json({ error: message }, { status });
 }
 
-async function getDocsByOwnerId(collectionName: string, ownerId: string) {
-    return adminDb()
-        .collection(collectionName)
-        .where("ownerId", "==", ownerId)
-        .limit(500)
-        .get();
+async function getRefsByOwner(
+    collectionName: string,
+    ownerId: string,
+    ownerName: string,
+) {
+    const refs = new Map<string, FirebaseFirestore.DocumentReference>();
+    const collectionRef = adminDb().collection(collectionName);
+
+    if (ownerId) {
+        const byOwnerId = await collectionRef
+            .where("ownerId", "==", ownerId)
+            .limit(500)
+            .get();
+        byOwnerId.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+    }
+
+    if (ownerName) {
+        const byOwnerName = await collectionRef
+            .where("ownerName", "==", ownerName)
+            .limit(500)
+            .get();
+        byOwnerName.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+    }
+
+    return Array.from(refs.values());
 }
 
-async function getTrackerRefs(ownerId: string) {
+async function getTrackerRefs(ownerId: string, ownerName: string) {
     const refs = new Map<string, FirebaseFirestore.DocumentReference>();
     const collectionRef = adminDb().collection("trackerClients");
 
-    const byField = await collectionRef.where("ownerId", "==", ownerId).limit(500).get();
-    byField.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+    if (ownerId) {
+        const byOwnerId = await collectionRef
+            .where("ownerId", "==", ownerId)
+            .limit(500)
+            .get();
+        byOwnerId.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+    }
+
+    if (ownerName) {
+        const byOwnerName = await collectionRef
+            .where("ownerName", "==", ownerName)
+            .limit(500)
+            .get();
+        byOwnerName.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+    }
 
     const directRef = collectionRef.doc(ownerId);
     const directDoc = await directRef.get();
@@ -30,50 +62,36 @@ async function getTrackerRefs(ownerId: string) {
     return Array.from(refs.values());
 }
 
-async function deleteDocsByOwnerId(collectionName: string, ownerId: string) {
-    let deleted = 0;
-
-    while (true) {
-        const snapshot = await adminDb()
-            .collection(collectionName)
-            .where("ownerId", "==", ownerId)
-            .limit(200)
-            .get();
-
-        if (snapshot.empty) {
-            break;
-        }
-
-        const batch = adminDb().batch();
-        snapshot.docs.forEach((item) => batch.delete(item.ref));
-        await batch.commit();
-        deleted += snapshot.size;
-    }
-
-    return deleted;
-}
-
 export async function PATCH(request: Request) {
     try {
         await requireAdmin(request);
         const body = (await request.json()) as {
             ownerId?: string;
             ownerName?: string;
+            previousOwnerName?: string;
         };
         const ownerId = String(body.ownerId ?? "").trim();
         const ownerName = String(body.ownerName ?? "").trim();
+        const previousOwnerName = String(
+            body.previousOwnerName ?? "",
+        ).trim();
 
         if (!ownerId || !ownerName) {
             return jsonError("ownerId and ownerName are required.", 400);
         }
 
-        const usageSnapshot = await getDocsByOwnerId("usageDailySummaries", ownerId);
-        const trackerRefs = await getTrackerRefs(ownerId);
+        const usageRefs = await getRefsByOwner(
+            "usageDailySummaries",
+            ownerId,
+            previousOwnerName || ownerName,
+        );
+        const trackerRefs = await getTrackerRefs(
+            ownerId,
+            previousOwnerName || ownerName,
+        );
         const batch = adminDb().batch();
 
-        usageSnapshot.docs.forEach((item) =>
-            batch.update(item.ref, { ownerName }),
-        );
+        usageRefs.forEach((ref) => batch.update(ref, { ownerName }));
         trackerRefs.forEach((ref) =>
             batch.update(ref, { ownerName }),
         );
@@ -84,7 +102,7 @@ export async function PATCH(request: Request) {
             ownerId,
             ownerName,
             updatedTrackerDocs: trackerRefs.length,
-            updatedUsageDocs: usageSnapshot.size,
+            updatedUsageDocs: usageRefs.length,
         });
     } catch (error) {
         const message =
@@ -98,15 +116,28 @@ export async function DELETE(request: Request) {
         await requireAdmin(request);
         const body = (await request.json()) as {
             ownerId?: string;
+            ownerName?: string;
         };
         const ownerId = String(body.ownerId ?? "").trim();
+        const ownerName = String(body.ownerName ?? "").trim();
 
         if (!ownerId) {
             return jsonError("ownerId is required.", 400);
         }
 
-        const deletedUsage = await deleteDocsByOwnerId("usageDailySummaries", ownerId);
-        const trackerRefs = await getTrackerRefs(ownerId);
+        const usageRefs = await getRefsByOwner(
+            "usageDailySummaries",
+            ownerId,
+            ownerName,
+        );
+        if (usageRefs.length) {
+            const batch = adminDb().batch();
+            usageRefs.forEach((ref) => batch.delete(ref));
+            await batch.commit();
+        }
+        const deletedUsage = usageRefs.length;
+
+        const trackerRefs = await getTrackerRefs(ownerId, ownerName);
         if (trackerRefs.length) {
             const batch = adminDb().batch();
             trackerRefs.forEach((ref) => batch.delete(ref));
