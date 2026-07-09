@@ -11,28 +11,37 @@ function requireEnv(name: string) {
   return value;
 }
 
+function cleanBucketName(value: string) {
+  return value
+    .trim()
+    .replace(/^['"]+|['"]+$/g, "")
+    .replace(/^gs:\/\//, "")
+    .replace(/\/.*$/, "");
+}
+
 function resolveStorageBucket() {
   const explicitBucket = process.env.FIREBASE_ADMIN_STORAGE_BUCKET?.trim();
   if (explicitBucket) {
-    return explicitBucket;
+    return cleanBucketName(explicitBucket);
   }
 
   const publicBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim();
   if (publicBucket) {
-    if (publicBucket.endsWith(".firebasestorage.app")) {
+    const cleanedPublicBucket = cleanBucketName(publicBucket);
+    if (cleanedPublicBucket.endsWith(".firebasestorage.app")) {
       const projectId =
-        process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
-        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+        cleanBucketName(process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || "") ||
+        cleanBucketName(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() || "");
       if (projectId) {
         return `${projectId}.appspot.com`;
       }
     }
-    return publicBucket;
+    return cleanedPublicBucket;
   }
 
   const projectId =
-    process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    cleanBucketName(process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || "") ||
+    cleanBucketName(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() || "");
   return projectId ? `${projectId}.appspot.com` : undefined;
 }
 
@@ -61,4 +70,14 @@ export function adminAuth() {
 
 export function adminStorage() {
   return getStorage(adminApp());
+}
+
+export function adminStorageBucketName() {
+  const bucketName = resolveStorageBucket();
+  if (!bucketName) {
+    throw new Error(
+      "Storage bucket name is missing. Set FIREBASE_ADMIN_STORAGE_BUCKET or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.",
+    );
+  }
+  return bucketName;
 }

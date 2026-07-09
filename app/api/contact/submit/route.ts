@@ -1,6 +1,11 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb, adminStorage } from "@/lib/firebase-admin";
+import {
+    adminAuth,
+    adminDb,
+    adminStorage,
+    adminStorageBucketName,
+} from "@/lib/firebase-admin";
 
 function env(name: string) {
     return process.env[name]?.trim();
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
         }
 
         const messageRef = adminDb().collection("contactMessages").doc();
-        const storageBucket = adminStorage().bucket();
+        const storageBucket = adminStorage().bucket(adminStorageBucketName());
 
         const attachments = await Promise.all(
             files.map(async (file) => {

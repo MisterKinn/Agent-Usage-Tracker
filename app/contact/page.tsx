@@ -56,22 +56,37 @@ export default function ContactPage() {
 
     function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
         const selected = Array.from(event.target.files ?? []);
-        const limited = selected.slice(0, 5);
 
         setAttachments((current) => {
-            current.forEach((item) => {
-                if (item.previewUrl) {
-                    URL.revokeObjectURL(item.previewUrl);
-                }
-            });
+            const seen = new Set(
+                current.map(
+                    (item) =>
+                        `${item.file.name}:${item.file.size}:${item.file.lastModified}`,
+                ),
+            );
+            const next = [...current];
 
-            return limited.map((file) => ({
-                file,
-                previewUrl: file.type.startsWith("image/")
-                    ? URL.createObjectURL(file)
-                    : undefined,
-            }));
+            for (const file of selected) {
+                const key = `${file.name}:${file.size}:${file.lastModified}`;
+                if (seen.has(key)) {
+                    continue;
+                }
+                if (next.length >= 5) {
+                    break;
+                }
+                next.push({
+                    file,
+                    previewUrl: file.type.startsWith("image/")
+                        ? URL.createObjectURL(file)
+                        : undefined,
+                });
+                seen.add(key);
+            }
+
+            return next;
         });
+
+        event.target.value = "";
     }
 
     function removeAttachment(index: number) {
@@ -221,7 +236,8 @@ export default function ContactPage() {
                                         onChange={handleFileChange}
                                     />
                                     <div className={styles.attachmentHint}>
-                                        최대 5개까지 첨부할 수 있습니다.
+                                        최대 5개까지 첨부할 수 있습니다. 여러 번
+                                        선택하면 누적됩니다.
                                     </div>
                                 </div>
                             </label>
