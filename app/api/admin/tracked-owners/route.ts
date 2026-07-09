@@ -14,6 +14,22 @@ async function getDocsByOwnerId(collectionName: string, ownerId: string) {
         .get();
 }
 
+async function getTrackerRefs(ownerId: string) {
+    const refs = new Map<string, FirebaseFirestore.DocumentReference>();
+    const collectionRef = adminDb().collection("trackerClients");
+
+    const byField = await collectionRef.where("ownerId", "==", ownerId).limit(500).get();
+    byField.docs.forEach((item) => refs.set(item.ref.path, item.ref));
+
+    const directRef = collectionRef.doc(ownerId);
+    const directDoc = await directRef.get();
+    if (directDoc.exists) {
+        refs.set(directRef.path, directRef);
+    }
+
+    return Array.from(refs.values());
+}
+
 async function deleteDocsByOwnerId(collectionName: string, ownerId: string) {
     let deleted = 0;
 
@@ -52,14 +68,14 @@ export async function PATCH(request: Request) {
         }
 
         const usageSnapshot = await getDocsByOwnerId("usageDailySummaries", ownerId);
-        const trackerSnapshot = await getDocsByOwnerId("trackerClients", ownerId);
+        const trackerRefs = await getTrackerRefs(ownerId);
         const batch = adminDb().batch();
 
         usageSnapshot.docs.forEach((item) =>
             batch.update(item.ref, { ownerName }),
         );
-        trackerSnapshot.docs.forEach((item) =>
-            batch.update(item.ref, { ownerName }),
+        trackerRefs.forEach((ref) =>
+            batch.update(ref, { ownerName }),
         );
         await batch.commit();
 
@@ -67,7 +83,7 @@ export async function PATCH(request: Request) {
             ok: true,
             ownerId,
             ownerName,
-            updatedTrackerDocs: trackerSnapshot.size,
+            updatedTrackerDocs: trackerRefs.length,
             updatedUsageDocs: usageSnapshot.size,
         });
     } catch (error) {
@@ -90,7 +106,13 @@ export async function DELETE(request: Request) {
         }
 
         const deletedUsage = await deleteDocsByOwnerId("usageDailySummaries", ownerId);
-        const deletedTracker = await deleteDocsByOwnerId("trackerClients", ownerId);
+        const trackerRefs = await getTrackerRefs(ownerId);
+        if (trackerRefs.length) {
+            const batch = adminDb().batch();
+            trackerRefs.forEach((ref) => batch.delete(ref));
+            await batch.commit();
+        }
+        const deletedTracker = trackerRefs.length;
 
         return NextResponse.json({
             ok: true,

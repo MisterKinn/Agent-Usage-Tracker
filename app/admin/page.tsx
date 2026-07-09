@@ -415,6 +415,12 @@ export default function AdminPage() {
             setActionMessage(
                 `${targetLabel} 정리 완료: usage ${payload.deletedUsage}건, tracker ${payload.deletedTracker}건`,
             );
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `${targetLabel} 정리 실패: ${error.message}`
+                    : `${targetLabel} 정리 실패`,
+            );
         } finally {
             setBusyKey("");
         }
@@ -443,6 +449,12 @@ export default function AdminPage() {
 
             setActionMessage(
                 `${owner.ownerName} 이름 변경 완료: ${nextName} · usage ${payload.updatedUsageDocs}건, tracker ${payload.updatedTrackerDocs}건`,
+            );
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `이름 변경 실패: ${error.message}`
+                    : "이름 변경 실패",
             );
         } finally {
             setBusyKey("");
@@ -477,6 +489,12 @@ export default function AdminPage() {
             );
             setActionMessage(
                 `${targetLabel} 삭제 완료: profiles ${payload.deletedProfiles}건, visits ${payload.deletedVisits}건, messages ${payload.deletedMessages}건`,
+            );
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `${targetLabel} 삭제 실패: ${error.message}`
+                    : `${targetLabel} 삭제 실패`,
             );
         } finally {
             setBusyKey("");
