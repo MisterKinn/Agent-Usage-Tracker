@@ -42,6 +42,7 @@ function readArgs(argv) {
     maxEvents: 200,
     allHistory: false,
     intervalMs: 8000,
+    uploadIntervalMs: 10 * 60 * 1000,
     codexDbPath: DEFAULT_CODEX_DB,
     codexSessionIndexPath: DEFAULT_CODEX_SESSION_INDEX,
     claudeProjectsDir: DEFAULT_CLAUDE_PROJECTS_DIR,
@@ -75,6 +76,9 @@ function readArgs(argv) {
       args.sinceDays = 0;
     } else if (arg === "--interval-ms") {
       args.intervalMs = Number(argv[index + 1] ?? args.intervalMs);
+      index += 1;
+    } else if (arg === "--upload-interval-ms") {
+      args.uploadIntervalMs = Number(argv[index + 1] ?? args.uploadIntervalMs);
       index += 1;
     } else if (arg === "--codex-db") {
       args.codexDbPath = argv[index + 1] ?? args.codexDbPath;
@@ -208,6 +212,60 @@ function readState() {
 function writeState(state) {
   writeFileSync(`${STATE_PATH}.tmp`, JSON.stringify(state, null, 2), "utf8");
   renameSync(`${STATE_PATH}.tmp`, STATE_PATH);
+}
+
+function summarizeEvents(events, ownerId, ownerName) {
+  const grouped = new Map();
+
+  for (const event of events) {
+    const completedAt = String(event.completedAt ?? "").trim();
+    const dateKey = completedAt.slice(0, 10);
+    const agent = String(event.agent ?? "unknown").trim() || "unknown";
+    if (!dateKey) {
+      continue;
+    }
+
+    const summaryId = `${dateKey}:${agent}:${ownerId}`;
+    const current = grouped.get(summaryId) ?? {
+      summaryId,
+      dateKey,
+      ownerId,
+      ownerName,
+      agent,
+      events: 0,
+      sessions: 0,
+      inputTokens: 0,
+      cachedTokens: 0,
+      cacheCreationTokens: 0,
+      outputTokens: 0,
+      reasoningTokens: 0,
+      totalTokens: 0,
+      lastCompletedAt: completedAt,
+      source: "daily-agent-summary",
+      sessionIds: new Set(),
+    };
+
+    current.ownerName = String(event.ownerName ?? ownerName).trim() || ownerName;
+    current.events += 1;
+    current.inputTokens += Number(event.inputTokens ?? 0);
+    current.cachedTokens += Number(event.cachedTokens ?? 0);
+    current.cacheCreationTokens += Number(event.cacheCreationTokens ?? 0);
+    current.outputTokens += Number(event.outputTokens ?? 0);
+    current.reasoningTokens += Number(event.reasoningTokens ?? 0);
+    current.totalTokens += Number(event.totalTokens ?? 0);
+    if (completedAt && completedAt > String(current.lastCompletedAt ?? "")) {
+      current.lastCompletedAt = completedAt;
+    }
+    const sessionId = String(event.sessionId ?? "").trim();
+    if (sessionId) {
+      current.sessionIds.add(sessionId);
+      current.sessions = current.sessionIds.size;
+    }
+
+    grouped.set(summaryId, current);
+  }
+
+  return Array.from(grouped.values()).map(({ sessionIds: _sessionIds, ...summary }) => summary);
 }
 
 function readCodexSessionNames(sessionIndexPath) {
@@ -434,24 +492,54 @@ async function requestJson(url, body) {
 }
 
 async function syncOnce({ args, state }) {
-  const uploaded = new Set(state.uploadedEventIds ?? []);
-  const events = collectEvents(args)
-    .filter((event) => !uploaded.has(event.eventId))
-    .slice(0, args.maxEvents > 0 ? args.maxEvents : undefined);
+  const events = collectEvents(args);
+  let summaries = summarizeEvents(events, args.ownerId, args.name);
+  if (args.maxEvents > 0) {
+    summaries = summaries.slice(0, args.maxEvents);
+  }
 
   if (args.dryRun) {
-    const counts = events.reduce((acc, event) => {
-      acc[event.agent] = (acc[event.agent] ?? 0) + 1;
+    const counts = summaries.reduce((acc, summary) => {
+      acc[summary.agent] = (acc[summary.agent] ?? 0) + 1;
       return acc;
     }, {});
-    const totalTokens = events.reduce((sum, event) => sum + event.totalTokens, 0);
+    const totalTokens = summaries.reduce((sum, summary) => sum + summary.totalTokens, 0);
+    const totalEvents = summaries.reduce((sum, summary) => sum + summary.events, 0);
     console.log(
-      `[agent-usage-tracker] dry-run found ${events.length} uploadable event(s), totalTokens=${totalTokens}, counts=${JSON.stringify(counts)}, sinceDays=${args.allHistory ? "all" : args.sinceDays}, maxEvents=${args.maxEvents}`,
+      `[agent-usage-tracker] dry-run found ${summaries.length} uploadable summary doc(s), events=${totalEvents}, totalTokens=${totalTokens}, counts=${JSON.stringify(counts)}, sinceDays=${args.allHistory ? "all" : args.sinceDays}, maxEvents=${args.maxEvents}`,
     );
     return;
   }
 
-  if (events.length > 0) {
+  const fingerprints = state.dailySummaryFingerprints ?? {};
+  const changedSummaries = [];
+  for (const summary of summaries) {
+    const fingerprint = JSON.stringify(summary);
+    if (fingerprints[summary.summaryId] === fingerprint) {
+      continue;
+    }
+    changedSummaries.push({ summary, fingerprint });
+  }
+
+  if (changedSummaries.length === 0) {
+    return;
+  }
+
+  const lastUploadedAt = Date.parse(String(state.lastUploadedAt ?? ""));
+  const uploadDue =
+    args.once ||
+    Number.isNaN(lastUploadedAt) ||
+    Date.now() - lastUploadedAt >= args.uploadIntervalMs;
+
+  if (!uploadDue) {
+    return;
+  }
+
+  for (const { summary, fingerprint } of changedSummaries) {
+    fingerprints[summary.summaryId] = fingerprint;
+  }
+
+  if (changedSummaries.length > 0) {
     await requestJson(TRACKER_UPLOAD_URL, {
       ownerId: args.ownerId,
       ownerName: args.name,
@@ -459,24 +547,25 @@ async function syncOnce({ args, state }) {
       workspacePath: RUN_CONTEXT,
       trackerPath: ROOT,
       trackerSource: "local-agent-log-node",
-      events,
+      summaries: changedSummaries.map(({ summary }) => summary),
     });
   }
 
-  for (const event of events) {
-    uploaded.add(event.eventId);
-  }
-
-  state.uploadedEventIds = Array.from(uploaded).slice(-5000);
+  state.dailySummaryFingerprints = fingerprints;
+  state.lastUploadedAt = new Date().toISOString();
   state.lastSyncedAt = new Date().toISOString();
   writeState(state);
 
-  const counts = events.reduce((acc, event) => {
-    acc[event.agent] = (acc[event.agent] ?? 0) + 1;
+  const counts = changedSummaries.reduce((acc, { summary }) => {
+    acc[summary.agent] = (acc[summary.agent] ?? 0) + 1;
     return acc;
   }, {});
+  const totalTokens = changedSummaries.reduce(
+    (sum, { summary }) => sum + Number(summary.totalTokens ?? 0),
+    0,
+  );
   console.log(
-    `[agent-usage-tracker] synced ${events.length} new event(s) as ${args.name} ${JSON.stringify(counts)}`,
+    `[agent-usage-tracker] synced ${changedSummaries.length} summary doc(s), totalTokens=${totalTokens} as ${args.name} ${JSON.stringify(counts)}`,
   );
 }
 

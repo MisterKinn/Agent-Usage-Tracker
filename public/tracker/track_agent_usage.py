@@ -111,7 +111,7 @@ def read_args() -> argparse.Namespace:
     parser.add_argument("--max-events", type=int, default=200)
     parser.add_argument("--all-history", action="store_true")
     parser.add_argument("--interval-seconds", type=float, default=8)
-    parser.add_argument("--upload-interval-seconds", type=float, default=3600)
+    parser.add_argument("--upload-interval-seconds", type=float, default=600)
     parser.add_argument("--codex-db", default=str(Path.home() / ".codex" / "logs_2.sqlite"))
     parser.add_argument(
         "--codex-session-index",

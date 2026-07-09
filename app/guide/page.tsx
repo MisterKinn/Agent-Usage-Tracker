@@ -118,7 +118,7 @@ export default function GuidePage() {
                         트래커가 실행되면 AI 에이전트가 로컬에 남긴 로그 파일을
                         읽고
                         <br />
-                        1시간 간격으로 대시보드가 업데이트됩니다.
+                        토큰 변화가 있을 때만 감지되고, 최대 10분 간격으로 대시보드에 반영됩니다.
                     </p>
                     <div className="page-actions">
                         <Link className="button" href="/dashboard">
