@@ -1,37 +1,17 @@
 "use client";
 
-import {
-    FileImage,
-    Send,
-} from "lucide-react";
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { type ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { auth, hasFirebaseConfig } from "@/lib/firebase";
 import { detectVisitorEnvironment } from "@/lib/visitor";
 import styles from "./contact.module.css";
-
-type AttachmentDraft = {
-    file: File;
-    previewUrl?: string;
-};
-
-function formatFileSize(bytes: number) {
-    if (bytes < 1024) {
-        return `${bytes} B`;
-    }
-    if (bytes < 1024 * 1024) {
-        return `${(bytes / 1024).toFixed(1)} KB`;
-    }
-
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default function ContactPage() {
     const [user, setUser] = useState<User | null>(null);
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
-    const [attachments, setAttachments] = useState<AttachmentDraft[]>([]);
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -43,63 +23,6 @@ export default function ContactPage() {
 
         return onAuthStateChanged(auth, setUser);
     }, []);
-
-    useEffect(() => {
-        return () => {
-            attachments.forEach((item) => {
-                if (item.previewUrl) {
-                    URL.revokeObjectURL(item.previewUrl);
-                }
-            });
-        };
-    }, [attachments]);
-
-    function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-        const selected = Array.from(event.target.files ?? []);
-
-        setAttachments((current) => {
-            const seen = new Set(
-                current.map(
-                    (item) =>
-                        `${item.file.name}:${item.file.size}:${item.file.lastModified}`,
-                ),
-            );
-            const next = [...current];
-
-            for (const file of selected) {
-                const key = `${file.name}:${file.size}:${file.lastModified}`;
-                if (seen.has(key)) {
-                    continue;
-                }
-                if (next.length >= 5) {
-                    break;
-                }
-                next.push({
-                    file,
-                    previewUrl: file.type.startsWith("image/")
-                        ? URL.createObjectURL(file)
-                        : undefined,
-                });
-                seen.add(key);
-            }
-
-            return next;
-        });
-
-        event.target.value = "";
-    }
-
-    function removeAttachment(index: number) {
-        setAttachments((current) =>
-            current.filter((item, itemIndex) => {
-                if (itemIndex === index && item.previewUrl) {
-                    URL.revokeObjectURL(item.previewUrl);
-                }
-
-                return itemIndex !== index;
-            }),
-        );
-    }
 
     async function submitContact(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -125,9 +48,6 @@ export default function ContactPage() {
             formData.set("os", environment.os);
             formData.set("browser", environment.browser);
             formData.set("deviceType", environment.deviceType);
-            attachments.forEach(({ file }) => {
-                formData.append("attachments", file, file.name);
-            });
 
             const response = await fetch("/api/contact/submit", {
                 method: "POST",
@@ -148,15 +68,6 @@ export default function ContactPage() {
 
             setSubject("");
             setMessage("");
-            setAttachments((current) => {
-                current.forEach((item) => {
-                    if (item.previewUrl) {
-                        URL.revokeObjectURL(item.previewUrl);
-                    }
-                });
-
-                return [];
-            });
             setStatus("문의가 저장되었습니다.");
         } catch (nextError) {
             const message =
@@ -225,71 +136,10 @@ export default function ContactPage() {
                                     required
                                 />
                             </label>
-                            <label>
-                                <span>이미지 / 파일 첨부</span>
-                                <div className={styles.attachmentField}>
-                                    <input
-                                        className={styles.fileInput}
-                                        type="file"
-                                        accept="image/*,.pdf,.txt,.log,.json,.md,.zip"
-                                        multiple
-                                        onChange={handleFileChange}
-                                    />
-                                    <div className={styles.attachmentHint}>
-                                        최대 5개까지 첨부할 수 있습니다. 여러 번
-                                        선택하면 누적됩니다.
-                                    </div>
-                                </div>
-                            </label>
-                            {attachments.length ? (
-                                <div className={styles.attachmentList}>
-                                    {attachments.map((item, index) => (
-                                        <div
-                                            className={styles.attachmentItem}
-                                            key={`${item.file.name}-${index}`}
-                                        >
-                                            <div className={styles.attachmentMeta}>
-                                                {item.previewUrl ? (
-                                                    <img
-                                                        alt={item.file.name}
-                                                        className={
-                                                            styles.attachmentPreview
-                                                        }
-                                                        src={item.previewUrl}
-                                                    />
-                                                ) : (
-                                                    <div
-                                                        className={
-                                                            styles.attachmentIcon
-                                                        }
-                                                    >
-                                                        <FileImage size={16} />
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <strong>
-                                                        {item.file.name}
-                                                    </strong>
-                                                    <span>
-                                                        {formatFileSize(
-                                                            item.file.size,
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                className="button secondary"
-                                                type="button"
-                                                onClick={() =>
-                                                    removeAttachment(index)
-                                                }
-                                            >
-                                                제거
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : null}
+                            <div className="notice">
+                                이미지나 로그 파일이 있으면 Google Drive, Notion,
+                                이미지 링크 등을 문의 내용에 함께 적어 주세요.
+                            </div>
                             <div className={styles.accountBadge}>
                                 <span className={styles.accountLabel}>
                                     현재 로그인 계정

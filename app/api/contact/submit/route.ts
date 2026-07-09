@@ -1,11 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import {
-    adminAuth,
-    adminDb,
-    adminStorage,
-    adminStorageBucketName,
-} from "@/lib/firebase-admin";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 function env(name: string) {
     return process.env[name]?.trim();
@@ -13,20 +8,6 @@ function env(name: string) {
 
 function jsonError(message: string, status: number) {
     return NextResponse.json({ error: message }, { status });
-}
-
-function readableUploadError(error: unknown) {
-    const message =
-        error instanceof Error ? error.message : "문의를 저장하지 못했습니다.";
-
-    if (
-        message.includes("The specified bucket does not exist") ||
-        message.includes("Bucket name not specified or invalid")
-    ) {
-        return "Firebase Storage 버킷이 아직 준비되지 않았습니다. Firebase Console > Storage에서 버킷을 생성하고, Vercel/로컬 환경변수의 FIREBASE_ADMIN_STORAGE_BUCKET에 실제 버킷명을 넣어 주세요.";
-    }
-
-    return message;
 }
 
 export async function POST(request: Request) {
@@ -48,63 +29,15 @@ export async function POST(request: Request) {
         const os = String(formData.get("os") ?? "").trim();
         const browser = String(formData.get("browser") ?? "").trim();
         const deviceType = String(formData.get("deviceType") ?? "").trim();
-        const files = formData
-            .getAll("attachments")
-            .filter((item): item is File => item instanceof File && item.size > 0)
-            .slice(0, 5);
 
         if (!subject || !message) {
             return jsonError("제목과 문의 내용을 입력해 주세요.", 400);
         }
 
         const messageRef = adminDb().collection("contactMessages").doc();
-        const storageBucket = adminStorage().bucket(adminStorageBucketName());
-
-        const attachments = await Promise.all(
-            files.map(async (file) => {
-                const buffer = Buffer.from(await file.arrayBuffer());
-                const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
-                const storagePath = [
-                    "contact-attachments",
-                    decoded.uid,
-                    messageRef.id,
-                    `${Date.now()}-${safeName}`,
-                ].join("/");
-                const bucketFile = storageBucket.file(storagePath);
-
-                await bucketFile.save(buffer, {
-                    contentType: file.type || "application/octet-stream",
-                    resumable: false,
-                    metadata: {
-                        cacheControl: "private, max-age=31536000",
-                        contentDisposition: `attachment; filename="${encodeURIComponent(file.name)}"`,
-                    },
-                });
-
-                const [url] = await bucketFile.getSignedUrl({
-                    action: "read",
-                    expires: "2099-12-31",
-                });
-
-                return {
-                    content: buffer.toString("base64"),
-                    filename: file.name,
-                    path: storagePath,
-                    size: file.size,
-                    type: file.type || "application/octet-stream",
-                    url,
-                };
-            }),
-        );
 
         await messageRef.set({
-            attachments: attachments.map((item) => ({
-                name: item.filename,
-                path: item.path,
-                size: item.size,
-                type: item.type,
-                url: item.url,
-            })),
+            attachments: [],
             authEmail: decoded.email ?? "",
             authUid: decoded.uid,
             browser,
@@ -144,10 +77,6 @@ export async function POST(request: Request) {
                             <pre style="white-space:pre-wrap">${message}</pre>
                         </div>
                     `,
-                    attachments: attachments.map((item) => ({
-                        content: item.content,
-                        filename: item.filename,
-                    })),
                 }),
             });
 
@@ -162,6 +91,8 @@ export async function POST(request: Request) {
             ok: true,
         });
     } catch (error) {
-        return jsonError(readableUploadError(error), 400);
+        const message =
+            error instanceof Error ? error.message : "문의를 저장하지 못했습니다.";
+        return jsonError(message, 400);
     }
 }
