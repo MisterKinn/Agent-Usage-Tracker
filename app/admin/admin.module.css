@@ -197,6 +197,12 @@
     white-space: pre-wrap;
 }
 
+.messageActions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
 .attachmentLinks {
     display: flex;
     flex-wrap: wrap;

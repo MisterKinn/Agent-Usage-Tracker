@@ -390,6 +390,36 @@ export default function AdminPage() {
         await updateDoc(doc(db, "contactMessages", id), { status });
     }
 
+    async function deleteMessage(message: ContactMessage) {
+        const targetLabel = message.subject || message.id;
+        const confirmed = window.confirm(
+            `resolved 상태인 "${targetLabel}" 문의를 삭제할까요?`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setBusyKey(`message:${message.id}`);
+        setActionMessage("");
+
+        try {
+            await adminRequest<{ ok: true }>("/api/admin/contact-messages", {
+                method: "DELETE",
+                body: JSON.stringify({ id: message.id }),
+            });
+            setActionMessage(`${targetLabel} 문의를 삭제했습니다.`);
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `문의 삭제 실패: ${error.message}`
+                    : "문의 삭제 실패",
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
     async function deleteTrackedOwner(owner: UsageOwnerSummary) {
         const targetLabel = owner.ownerName || owner.ownerId;
         const confirmed = window.confirm(
@@ -794,6 +824,27 @@ export default function AdminPage() {
                                             </option>
                                         </select>
                                     </div>
+                                    {message.status === "resolved" ? (
+                                        <div className={styles.messageActions}>
+                                            <button
+                                                className="button secondary"
+                                                type="button"
+                                                disabled={
+                                                    busyKey ===
+                                                    `message:${message.id}`
+                                                }
+                                                onClick={() =>
+                                                    deleteMessage(message)
+                                                }
+                                            >
+                                                <Trash2 size={16} />
+                                                {busyKey ===
+                                                `message:${message.id}`
+                                                    ? "삭제 중..."
+                                                    : "문의 삭제"}
+                                            </button>
+                                        </div>
+                                    ) : null}
                                     <div className={styles.messageBody}>
                                         {message.message}
                                     </div>
