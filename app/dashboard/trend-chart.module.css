@@ -12,6 +12,58 @@
     gap: 18px;
 }
 
+.trendControls {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.modeToggle {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(0, auto));
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.modeButton,
+.modeButtonActive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 34px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        background 140ms ease,
+        color 140ms ease,
+        transform 140ms ease;
+}
+
+.modeButton:hover,
+.modeButton:focus-visible,
+.modeButtonActive:focus-visible {
+    color: var(--accent);
+}
+
+.modeButtonActive {
+    background: rgba(125, 211, 252, 0.14);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.2);
+}
+
 .trendLegend {
     display: flex;
     flex-wrap: wrap;
@@ -121,6 +173,15 @@
 }
 
 @media (max-width: 680px) {
+    .trendControls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .modeToggle {
+        width: 100%;
+    }
+
     .trendCanvas {
         padding-left: 0;
     }

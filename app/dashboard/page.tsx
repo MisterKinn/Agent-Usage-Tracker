@@ -15,6 +15,7 @@ import {
     BarChart3,
     LogOut,
     Radio,
+    Scale,
     Sparkles,
     UserRound,
 } from "lucide-react";
@@ -87,10 +88,13 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
     };
 }
 
+type TrendMode = "absolute" | "normalized";
+
 export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
+    const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -167,6 +171,15 @@ export default function DashboardPage() {
             ),
         ),
     );
+    const trendOwnerMaxMap = new Map(
+        trendOwners.map((owner) => {
+            const values = dateKeys.map(
+                (dateKey) =>
+                    trendMatrix.get(`${owner.ownerId || owner.ownerName}::${dateKey}`) ?? 0,
+            );
+            return [owner.ownerId || owner.ownerName, Math.max(1, ...values)] as const;
+        }),
+    );
     const chartWidth = 920;
     const chartHeight = 280;
     const chartPaddingX = 28;
@@ -176,33 +189,47 @@ export default function DashboardPage() {
     const plotHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
     const xDenominator = Math.max(dateKeys.length - 1, 1);
     const trendSeries = trendOwners.map((owner, ownerIndex) => {
+        const ownerKey = owner.ownerId || owner.ownerName;
         const values = dateKeys.map(
             (dateKey) =>
-                trendMatrix.get(`${owner.ownerId || owner.ownerName}::${dateKey}`) ?? 0,
+                trendMatrix.get(`${ownerKey}::${dateKey}`) ?? 0,
         );
+        const ownerMaxTokens = trendOwnerMaxMap.get(ownerKey) ?? 1;
         const points = values.map((tokens, index) => {
             const dateKey = dateKeys[index] ?? "";
             const x = chartPaddingX + (plotWidth * index) / xDenominator;
+            const scaledRatio =
+                trendMode === "normalized"
+                    ? tokens / ownerMaxTokens
+                    : tokens / trendMaxTokens;
             const y =
                 chartPaddingTop +
                 plotHeight -
-                (tokens / trendMaxTokens) * plotHeight;
-            return { x, y, tokens, dateKey };
+                scaledRatio * plotHeight;
+            return { x, y, tokens, dateKey, ratio: scaledRatio };
         });
 
         return {
             ownerName: owner.ownerName,
             totalTokens: owner.totalTokens,
+            ownerMaxTokens,
             color: TREND_COLORS[ownerIndex % TREND_COLORS.length],
             values,
             points,
             polyline: points.map((point) => `${point.x},${point.y}`).join(" "),
         };
     });
-    const yGridValues = [1, 0.5, 0].map((ratio) => ({
-        value: Math.round(trendMaxTokens * ratio),
-        y: chartPaddingTop + plotHeight - plotHeight * ratio,
-    }));
+    const yGridValues = [1, 0.5, 0].map((ratio) => {
+        const value =
+            trendMode === "normalized"
+                ? `${Math.round(ratio * 100)}%`
+                : formatNumber(Math.round(trendMaxTokens * ratio));
+        return {
+            value,
+            key: `${trendMode}-${ratio}`,
+            y: chartPaddingTop + plotHeight - plotHeight * ratio,
+        };
+    });
 
     if (!hasFirebaseConfig()) {
         return (
@@ -325,10 +352,34 @@ export default function DashboardPage() {
                             <BarChart3 size={18} />
                             유저별 최근 7일 토큰 추이
                         </h2>
-                        <span className="live">
-                            <Activity size={14} />
-                            active only
-                        </span>
+                        <div className={styles.trendControls}>
+                            <div
+                                className={styles.modeToggle}
+                                role="tablist"
+                                aria-label="토큰 추이 표시 모드"
+                            >
+                                <button
+                                    className={trendMode === "absolute" ? styles.modeButtonActive : styles.modeButton}
+                                    type="button"
+                                    onClick={() => setTrendMode("absolute")}
+                                >
+                                    <Scale size={14} />
+                                    absolute
+                                </button>
+                                <button
+                                    className={trendMode === "normalized" ? styles.modeButtonActive : styles.modeButton}
+                                    type="button"
+                                    onClick={() => setTrendMode("normalized")}
+                                >
+                                    <Sparkles size={14} />
+                                    relative
+                                </button>
+                            </div>
+                            <span className="live">
+                                <Activity size={14} />
+                                active only
+                            </span>
+                        </div>
                     </div>
                     {trendOwners.length && dateKeys.length ? (
                         <div
@@ -359,10 +410,10 @@ export default function DashboardPage() {
                                     {yGridValues.map((tick) => (
                                         <span
                                             className={styles.axisLabel}
-                                            key={tick.value}
+                                            key={tick.key}
                                             style={{ top: `${tick.y}px` }}
                                         >
-                                            {formatNumber(tick.value)}
+                                            {tick.value}
                                         </span>
                                     ))}
                                 </div>
@@ -370,11 +421,15 @@ export default function DashboardPage() {
                                     className={styles.trendSvg}
                                     viewBox={`0 0 ${chartWidth} ${chartHeight}`}
                                     role="img"
-                                    aria-label="사용자별 일별 active token line chart"
+                                    aria-label={
+                                        trendMode === "normalized"
+                                            ? "사용자별 일별 active token normalized line chart"
+                                            : "사용자별 일별 active token line chart"
+                                    }
                                 >
                                     {yGridValues.map((tick) => (
                                         <line
-                                            key={tick.value}
+                                            key={tick.key}
                                             className={styles.gridLine}
                                             x1={chartPaddingX}
                                             x2={chartWidth - chartPaddingX}
@@ -419,7 +474,9 @@ export default function DashboardPage() {
                                                         }}
                                                     />
                                                     <title>
-                                                        {`${series.ownerName} · ${point.dateKey} · ${formatNumber(point.tokens)} tokens`}
+                                                        {trendMode === "normalized"
+                                                            ? `${series.ownerName} · ${point.dateKey} · ${Math.round(point.ratio * 100)}% · ${formatNumber(point.tokens)} tokens`
+                                                            : `${series.ownerName} · ${point.dateKey} · ${formatNumber(point.tokens)} tokens`}
                                                     </title>
                                                 </g>
                                             ))}
