@@ -105,6 +105,7 @@ export default function DashboardPage() {
     const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("7d");
     const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+    const [selectedSummaryId, setSelectedSummaryId] = useState("");
 
     useEffect(() => {
         if (!hasFirebaseConfig() || !auth) {
@@ -186,6 +187,7 @@ export default function DashboardPage() {
     );
     const totalEvents = filteredSummaries.reduce((sum, item) => sum + item.events, 0);
     const lastEventDate = toDate(filteredSummaries[0]?.lastCompletedAt ?? null);
+    const recentTableRows = filteredSummaries.slice(0, 12);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
     const trackedUsers = summary.length;
@@ -232,6 +234,30 @@ export default function DashboardPage() {
                 : [...current, ownerKey],
         );
     }
+
+    useEffect(() => {
+        if (!recentTableRows.length) {
+            setSelectedSummaryId("");
+            return;
+        }
+
+        if (!selectedSummaryId) {
+            setSelectedSummaryId(recentTableRows[0]?.id ?? "");
+            return;
+        }
+
+        const stillVisible = recentTableRows.some(
+            (item) => item.id === selectedSummaryId,
+        );
+        if (!stillVisible) {
+            setSelectedSummaryId(recentTableRows[0]?.id ?? "");
+        }
+    }, [recentTableRows, selectedSummaryId]);
+
+    const selectedSummary =
+        recentTableRows.find((item) => item.id === selectedSummaryId) ??
+        recentTableRows[0] ??
+        null;
 
     const trendMaxTokens = Math.max(
         1,
@@ -784,13 +810,23 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {summaries.length ? (
-                                summaries.slice(0, 12).map((item) => {
+                            {recentTableRows.length ? (
+                                recentTableRows.map((item) => {
                                     const completedAt = toDate(
                                         item.lastCompletedAt,
                                     );
                                     return (
-                                        <tr key={item.id}>
+                                        <tr
+                                            className={
+                                                item.id === selectedSummaryId
+                                                    ? styles.detailRowActive
+                                                    : styles.detailRow
+                                            }
+                                            key={item.id}
+                                            onClick={() =>
+                                                setSelectedSummaryId(item.id)
+                                            }
+                                        >
                                             <td>
                                                 {completedAt
                                                     ? completedAt.toLocaleString(
@@ -833,6 +869,97 @@ export default function DashboardPage() {
                             )}
                         </tbody>
                     </table>
+                    {selectedSummary ? (
+                        <div className={styles.detailPanel}>
+                            <div className={styles.detailHeader}>
+                                <div>
+                                    <p className="eyebrow">Selected day</p>
+                                    <h3>
+                                        {selectedSummary.ownerName} ·{" "}
+                                        {selectedSummary.dateKey}
+                                    </h3>
+                                </div>
+                                <span
+                                    className={`agent-pill ${selectedSummary.agent}`}
+                                >
+                                    {selectedSummary.agent}
+                                </span>
+                            </div>
+                            <div className={styles.detailGrid}>
+                                <div className={styles.detailMetric}>
+                                    <span>active tokens</span>
+                                    <strong>
+                                        {formatNumber(
+                                            activeTokenCount(selectedSummary),
+                                        )}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>raw total</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.totalTokens)}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>input</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.inputTokens)}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>output</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.outputTokens)}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>cached read</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.cachedTokens)}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>cache create</span>
+                                    <strong>
+                                        {formatNumber(
+                                            selectedSummary.cacheCreationTokens,
+                                        )}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>reasoning</span>
+                                    <strong>
+                                        {formatNumber(
+                                            selectedSummary.reasoningTokens,
+                                        )}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>sessions</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.sessions)}
+                                    </strong>
+                                </div>
+                                <div className={styles.detailMetric}>
+                                    <span>events</span>
+                                    <strong>
+                                        {formatNumber(selectedSummary.events)}
+                                    </strong>
+                                </div>
+                            </div>
+                            <div className={styles.detailFoot}>
+                                <span>
+                                    source: {selectedSummary.source || "daily-agent-summary"}
+                                </span>
+                                <span>
+                                    updated:{" "}
+                                    {toDate(selectedSummary.lastCompletedAt)?.toLocaleString(
+                                        "ko-KR",
+                                    ) ?? "-"}
+                                </span>
+                            </div>
+                        </div>
+                    ) : null}
                 </article>
             </section>
         </main>
