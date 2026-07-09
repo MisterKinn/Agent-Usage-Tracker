@@ -224,7 +224,8 @@ export default function DashboardPage() {
             polyline: points.map((point) => `${point.x},${point.y}`).join(" "),
         };
     });
-    const yGridValues = [1, 0.5, 0].map((ratio) => {
+    const yGridRatios = [1, 0.75, 0.5, 0.25, 0];
+    const yGridValues = yGridRatios.map((ratio) => {
         const value =
             trendMode === "normalized"
                 ? `${Math.round(ratio * 100)}%`
