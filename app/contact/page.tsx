@@ -1,23 +1,13 @@
 "use client";
 
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import {
-    getDownloadURL,
-    ref,
-    uploadBytes,
-} from "firebase/storage";
 import {
     FileImage,
-    LifeBuoy,
-    Mail,
-    MessageSquareText,
     Send,
-    Terminal,
 } from "lucide-react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { type ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { auth, db, hasFirebaseConfig, storage } from "@/lib/firebase";
+import { auth, hasFirebaseConfig } from "@/lib/firebase";
 import { detectVisitorEnvironment } from "@/lib/visitor";
 import styles from "./contact.module.css";
 
@@ -101,15 +91,10 @@ export default function ContactPage() {
         setStatus("");
         setError("");
 
-        if (!user || !db) {
+        if (!user || !auth) {
             setError("문의는 로그인 후 보낼 수 있습니다.");
             return;
         }
-        if (!storage) {
-            setError("Firebase Storage 설정이 필요합니다.");
-            return;
-        }
-        const storageClient = storage;
 
         setSubmitting(true);
 
@@ -117,64 +102,33 @@ export default function ContactPage() {
             const environment = detectVisitorEnvironment(
                 window.navigator.userAgent,
             );
-            const uploadedAttachments = await Promise.all(
-                attachments.map(async ({ file }) => {
-                    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
-                    const storagePath = [
-                        "contact-attachments",
-                        user.uid,
-                        `${Date.now()}-${safeName}`,
-                    ].join("/");
-                    const storageRef = ref(storageClient, storagePath);
-                    await uploadBytes(storageRef, file, {
-                        contentType: file.type || "application/octet-stream",
-                    });
-                    const downloadUrl = await getDownloadURL(storageRef);
-
-                    return {
-                        name: file.name,
-                        path: storagePath,
-                        size: file.size,
-                        type: file.type || "application/octet-stream",
-                        url: downloadUrl,
-                    };
-                }),
-            );
-            const docRef = await addDoc(collection(db, "contactMessages"), {
-                attachments: uploadedAttachments,
-                authEmail: user.email ?? "",
-                authUid: user.uid,
-                browser: environment.browser,
-                createdAt: serverTimestamp(),
-                deviceType: environment.deviceType,
-                message: message.trim(),
-                os: environment.os,
-                ownerName: user.displayName ?? "",
-                status: "new",
-                subject: subject.trim(),
+            const idToken = await user.getIdToken();
+            const formData = new FormData();
+            formData.set("subject", subject.trim());
+            formData.set("message", message.trim());
+            formData.set("ownerName", user.displayName ?? "");
+            formData.set("os", environment.os);
+            formData.set("browser", environment.browser);
+            formData.set("deviceType", environment.deviceType);
+            attachments.forEach(({ file }) => {
+                formData.append("attachments", file, file.name);
             });
 
-            const notifyResponse = await fetch("/api/contact/notify", {
+            const response = await fetch("/api/contact/submit", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
                 },
-                body: JSON.stringify({
-                    authEmail: user.email ?? "",
-                    attachments: uploadedAttachments.map((item) => ({
-                        name: item.name,
-                        url: item.url,
-                    })),
-                    message: message.trim(),
-                    messageId: docRef.id,
-                    os: environment.os,
-                    ownerName: user.displayName ?? "",
-                    subject: subject.trim(),
-                }),
+                body: formData,
             });
 
-            if (!notifyResponse.ok) {
-                console.warn("contact notify failed");
+            if (!response.ok) {
+                const payload = (await response
+                    .json()
+                    .catch(() => null)) as { error?: string } | null;
+                throw new Error(
+                    payload?.error || "문의를 저장하지 못했습니다.",
+                );
             }
 
             setSubject("");

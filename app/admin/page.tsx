@@ -797,15 +797,24 @@ export default function AdminPage() {
                                         <div className={styles.attachmentLinks}>
                                             {message.attachments.map(
                                                 (attachment, index) => (
-                                                    <a
-                                                        className={styles.attachmentLink}
-                                                        href={attachment.url}
-                                                        key={`${message.id}-${index}`}
-                                                        rel="noreferrer"
-                                                        target="_blank"
-                                                    >
-                                                        {attachment.name}
-                                                    </a>
+                                                    attachment.url ? (
+                                                        <a
+                                                            className={styles.attachmentLink}
+                                                            href={attachment.url}
+                                                            key={`${message.id}-${index}`}
+                                                            rel="noreferrer"
+                                                            target="_blank"
+                                                        >
+                                                            {attachment.name}
+                                                        </a>
+                                                    ) : (
+                                                        <span
+                                                            className={styles.attachmentLink}
+                                                            key={`${message.id}-${index}`}
+                                                        >
+                                                            {attachment.name}
+                                                        </span>
+                                                    )
                                                 ),
                                             )}
                                         </div>
