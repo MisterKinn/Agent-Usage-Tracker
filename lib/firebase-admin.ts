@@ -11,6 +11,31 @@ function requireEnv(name: string) {
   return value;
 }
 
+function resolveStorageBucket() {
+  const explicitBucket = process.env.FIREBASE_ADMIN_STORAGE_BUCKET?.trim();
+  if (explicitBucket) {
+    return explicitBucket;
+  }
+
+  const publicBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim();
+  if (publicBucket) {
+    if (publicBucket.endsWith(".firebasestorage.app")) {
+      const projectId =
+        process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+      if (projectId) {
+        return `${projectId}.appspot.com`;
+      }
+    }
+    return publicBucket;
+  }
+
+  const projectId =
+    process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  return projectId ? `${projectId}.appspot.com` : undefined;
+}
+
 function adminApp() {
   if (getApps().length) {
     return getApps()[0];
@@ -22,9 +47,7 @@ function adminApp() {
       clientEmail: requireEnv("FIREBASE_ADMIN_CLIENT_EMAIL"),
       privateKey: requireEnv("FIREBASE_ADMIN_PRIVATE_KEY").replace(/\\n/g, "\n"),
     }),
-    storageBucket:
-      process.env.FIREBASE_ADMIN_STORAGE_BUCKET?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim(),
+    storageBucket: resolveStorageBucket(),
   });
 }
 
