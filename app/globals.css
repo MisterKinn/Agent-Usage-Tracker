@@ -123,6 +123,39 @@ h2 {
     height: var(--nav-offset);
 }
 
+.site-banner {
+    position: fixed;
+    z-index: 39;
+    inset: var(--nav-offset) 0 auto 0;
+    border-bottom: 1px solid var(--line);
+    background: rgba(26, 25, 24, 0.92);
+    backdrop-filter: blur(18px);
+}
+
+.site-banner-spacer {
+    height: 40px;
+}
+
+.site-banner.warning {
+    background: rgba(64, 41, 19, 0.92);
+}
+
+.site-banner.maintenance {
+    background: rgba(32, 35, 45, 0.94);
+}
+
+.site-banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(1240px, calc(100% - 32px));
+    min-height: 40px;
+    margin: 0 auto;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 800;
+}
+
 .site-nav {
     display: flex;
     align-items: center;

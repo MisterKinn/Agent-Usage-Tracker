@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiteBanner } from "./_components/site-banner";
 import { SiteNav } from "./_components/site-nav";
 import { VisitTracker } from "./_components/visit-tracker";
 import "./globals.css";
@@ -18,6 +19,7 @@ export default function RootLayout({
         <html lang="ko">
             <body>
                 <SiteNav />
+                <SiteBanner />
                 <VisitTracker />
                 <div className="site-nav-spacer" />
                 {children}

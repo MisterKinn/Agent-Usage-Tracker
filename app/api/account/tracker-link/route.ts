@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { TRACKER_CLIENT_VERSION } from "@/lib/tracker-version";
 
 function jsonError(message: string, status: number) {
     return NextResponse.json({ error: message }, { status });
@@ -7,6 +8,23 @@ function jsonError(message: string, status: number) {
 
 function asNonEmptyString(value: unknown, fallback = "") {
     return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function parseVersion(version: string) {
+    return (version.match(/\d+/g) ?? []).map((item) => Number(item) || 0);
+}
+
+function compareVersions(left: string, right: string) {
+    const leftParts = parseVersion(left);
+    const rightParts = parseVersion(right);
+    const size = Math.max(leftParts.length, rightParts.length);
+    while (leftParts.length < size) leftParts.push(0);
+    while (rightParts.length < size) rightParts.push(0);
+    for (let index = 0; index < size; index += 1) {
+        if (leftParts[index] > rightParts[index]) return 1;
+        if (leftParts[index] < rightParts[index]) return -1;
+    }
+    return 0;
 }
 
 async function requireUser(request: Request) {
@@ -29,13 +47,32 @@ export async function GET(request: Request) {
             .collection("userProfiles")
             .doc(decoded.uid)
             .get();
+        const linkedOwnerId = asNonEmptyString(profileSnapshot.get("linkedOwnerId"));
+        const trackerSnapshot = linkedOwnerId
+            ? await adminDb().collection("trackerClients").doc(linkedOwnerId).get()
+            : null;
+        const trackerVersion = asNonEmptyString(
+            trackerSnapshot?.get("trackerVersion"),
+        );
+        const lastSeenAt =
+            trackerSnapshot?.get("lastSeenAt")?.toDate?.()?.toISOString?.() ?? null;
 
         return NextResponse.json({
             ok: true,
-            linkedOwnerId: asNonEmptyString(profileSnapshot.get("linkedOwnerId")),
+            linkedOwnerId,
             linkedOwnerName: asNonEmptyString(
                 profileSnapshot.get("linkedOwnerName"),
             ),
+            trackerStatus: linkedOwnerId
+                ? {
+                      lastSeenAt,
+                      trackerVersion,
+                      latestVersion: TRACKER_CLIENT_VERSION,
+                      updateNeeded:
+                          trackerVersion &&
+                          compareVersions(trackerVersion, TRACKER_CLIENT_VERSION) < 0,
+                  }
+                : null,
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unauthorized";

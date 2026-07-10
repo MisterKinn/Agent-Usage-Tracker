@@ -43,6 +43,7 @@ type TrackerSyncPayload = {
   workspacePath?: string;
   trackerPath?: string;
   trackerSource?: string;
+  trackerVersion?: string;
   summaries?: TrackerSummaryPayload[];
   events?: TrackerEventPayload[];
 };
@@ -151,6 +152,7 @@ export async function POST(request: Request) {
     const workspacePath = asNonEmptyString(body.workspacePath);
     const trackerPath = asNonEmptyString(body.trackerPath);
     const trackerSource = asNonEmptyString(body.trackerSource, "local-agent-log");
+    const trackerVersion = asNonEmptyString(body.trackerVersion);
     const summaries = Array.isArray(body.summaries) ? body.summaries : [];
     const events = Array.isArray(body.events) ? body.events : [];
 
@@ -180,6 +182,7 @@ export async function POST(request: Request) {
         lastWorkspacePath: workspacePath,
         trackerPath,
         source: trackerSource,
+        trackerVersion,
       },
       { merge: true },
     );

@@ -66,6 +66,7 @@ export async function PATCH(request: Request) {
     try {
         await requireAdmin(request);
         const body = (await request.json()) as {
+            clearLinkedAuth?: boolean;
             ownerId?: string;
             ownerName?: string;
             previousOwnerName?: string;
@@ -75,9 +76,10 @@ export async function PATCH(request: Request) {
         const previousOwnerName = String(
             body.previousOwnerName ?? "",
         ).trim();
+        const clearLinkedAuth = Boolean(body.clearLinkedAuth);
 
-        if (!ownerId || !ownerName) {
-            return jsonError("ownerId and ownerName are required.", 400);
+        if (!ownerId) {
+            return jsonError("ownerId is required.", 400);
         }
 
         const usageRefs = await getRefsByOwner(
@@ -91,16 +93,29 @@ export async function PATCH(request: Request) {
         );
         const batch = adminDb().batch();
 
-        usageRefs.forEach((ref) => batch.update(ref, { ownerName }));
-        trackerRefs.forEach((ref) =>
-            batch.update(ref, { ownerName }),
-        );
+        if (clearLinkedAuth) {
+            usageRefs.forEach((ref) =>
+                batch.update(ref, { authUid: "", authEmail: "" }),
+            );
+            trackerRefs.forEach((ref) =>
+                batch.update(ref, { authUid: "", authEmail: "" }),
+            );
+        } else {
+            if (!ownerName) {
+                return jsonError("ownerName is required.", 400);
+            }
+            usageRefs.forEach((ref) => batch.update(ref, { ownerName }));
+            trackerRefs.forEach((ref) =>
+                batch.update(ref, { ownerName }),
+            );
+        }
         await batch.commit();
 
         return NextResponse.json({
             ok: true,
             ownerId,
             ownerName,
+            clearedLinkedAuth: clearLinkedAuth,
             updatedTrackerDocs: trackerRefs.length,
             updatedUsageDocs: usageRefs.length,
         });

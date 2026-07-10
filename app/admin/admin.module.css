@@ -132,7 +132,7 @@
 
 .accountItem {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 14px;
     align-items: center;
     border: 1px solid var(--line);
@@ -182,6 +182,17 @@
 
 .inlineInput {
     min-width: 0;
+}
+
+.selectionToggle {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--accent);
 }
 
 .metaGrid {
@@ -307,6 +318,16 @@
 
 .empty {
     color: var(--muted);
+}
+
+.noticePreview {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--accent);
+    padding: 14px;
+    font-size: 13px;
+    font-weight: 800;
 }
 
 @media (max-width: 980px) {

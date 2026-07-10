@@ -105,6 +105,13 @@ py -3 track_agent_usage.py --report
 py -3 track_agent_usage.py --report --report-days 30
 ```
 
+로컬 트래커 상태를 점검하려면 아래처럼 실행합니다.
+
+```powershell
+cd $HOME\.agent-usage-tracker
+py -3 track_agent_usage.py --doctor
+```
+
 리포트에는 `ownerId`도 함께 표시됩니다. 웹 계정 페이지에서 이 ownerId를 연결하면, 로그인 계정과 로컬 트래커 사용량이 정확히 매칭됩니다.
 
 리포트에 `update available`이 보이면 아래 설치 명령을 한 번 더 실행하면 최신 버전으로 업데이트됩니다.
@@ -159,6 +166,12 @@ npm run track
 ```bash
 npm run track:report
 npm run track:report -- --report-days 30
+```
+
+로컬 설정, 로그 경로, 업로드 토큰, 버전 상태를 점검하려면 아래 명령을 실행합니다.
+
+```bash
+npm run track -- --doctor
 ```
 
 이후에는 같은 프로젝트 폴더에서 아래 한 줄만 실행하면 됩니다.

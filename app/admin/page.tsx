@@ -16,14 +16,17 @@ import Link from "next/link";
 import {
     AlertTriangle,
     BarChart3,
+    CheckSquare,
     Clock3,
     FolderCog,
     HardDriveDownload,
     Mailbox,
+    Megaphone,
     PencilLine,
     RefreshCw,
     Search,
     Shield,
+    Square,
     Trash2,
     UserCog,
     Users,
@@ -105,6 +108,12 @@ type TrackedOwnerView = UsageOwnerSummary & {
     lastWorkspacePath: string;
     trackerPath: string;
     source: string;
+};
+
+type BannerSettings = {
+    active: boolean;
+    message: string;
+    tone: string;
 };
 
 function asDate(value: unknown) {
@@ -250,6 +259,12 @@ export default function AdminPage() {
     const [authProviderFilter, setAuthProviderFilter] = useState("all");
     const [messageSearch, setMessageSearch] = useState("");
     const [messageStatusFilter, setMessageStatusFilter] = useState("all");
+    const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+    const [bannerSettings, setBannerSettings] = useState<BannerSettings>({
+        active: false,
+        message: "",
+        tone: "neutral",
+    });
 
     useEffect(() => {
         if (!auth) {
@@ -389,6 +404,22 @@ export default function AdminPage() {
                 );
             });
         }
+    }, [user]);
+
+    useEffect(() => {
+        if (!user || !isAdminEmail(user.email)) {
+            return;
+        }
+
+        adminRequest<BannerSettings>("/api/site-banner")
+            .then((payload) =>
+                setBannerSettings({
+                    active: Boolean(payload.active),
+                    message: payload.message ?? "",
+                    tone: payload.tone ?? "neutral",
+                }),
+            )
+            .catch(() => undefined);
     }, [user]);
 
     const osCounts = useMemo(
@@ -549,6 +580,9 @@ export default function AdminPage() {
         (item) => item.status === "in-progress",
     ).length;
     const trackerLiveCount = trackerClients.filter((item) => item.lastSeenAt).length;
+    const selectedOwners = visibleTrackedOwners.filter((owner) =>
+        selectedOwnerIds.includes(owner.ownerId),
+    );
 
     async function adminRequest<T>(
         url: string,
@@ -898,6 +932,132 @@ export default function AdminPage() {
         }
     }
 
+    function toggleOwnerSelection(ownerId: string) {
+        setSelectedOwnerIds((current) =>
+            current.includes(ownerId)
+                ? current.filter((item) => item !== ownerId)
+                : [...current, ownerId],
+        );
+    }
+
+    async function bulkDeleteSelectedOwners() {
+        if (!selectedOwners.length) {
+            setActionMessage("선택된 트래킹 사용자가 없습니다.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `선택된 트래킹 사용자 ${selectedOwners.length}건의 usage/tracker 데이터를 삭제할까요?`,
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        setBusyKey("owners-bulk-delete");
+        setActionMessage("");
+
+        try {
+            let deletedUsage = 0;
+            let deletedTracker = 0;
+            for (const owner of selectedOwners) {
+                const payload = await adminRequest<{
+                    deletedTracker: number;
+                    deletedUsage: number;
+                }>("/api/admin/tracked-owners", {
+                    method: "DELETE",
+                    body: JSON.stringify({
+                        ownerId: owner.ownerId,
+                        ownerName: owner.ownerName,
+                    }),
+                });
+                deletedUsage += payload.deletedUsage;
+                deletedTracker += payload.deletedTracker;
+            }
+            setSelectedOwnerIds([]);
+            setActionMessage(
+                `선택 사용자 ${selectedOwners.length}건 삭제 완료: usage ${deletedUsage}건, tracker ${deletedTracker}건`,
+            );
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `일괄 삭제 실패: ${error.message}`
+                    : "일괄 삭제 실패",
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
+    async function bulkUnlinkSelectedOwners() {
+        if (!selectedOwners.length) {
+            setActionMessage("선택된 트래킹 사용자가 없습니다.");
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `선택된 트래킹 사용자 ${selectedOwners.length}건의 계정 연결만 해제할까요?`,
+        );
+        if (!confirmed) {
+            return;
+        }
+
+        setBusyKey("owners-bulk-unlink");
+        setActionMessage("");
+
+        try {
+            let updatedUsageDocs = 0;
+            let updatedTrackerDocs = 0;
+            for (const owner of selectedOwners) {
+                const payload = await adminRequest<{
+                    updatedTrackerDocs: number;
+                    updatedUsageDocs: number;
+                }>("/api/admin/tracked-owners", {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        ownerId: owner.ownerId,
+                        ownerName: owner.ownerName,
+                        clearLinkedAuth: true,
+                    }),
+                });
+                updatedUsageDocs += payload.updatedUsageDocs;
+                updatedTrackerDocs += payload.updatedTrackerDocs;
+            }
+            setSelectedOwnerIds([]);
+            setActionMessage(
+                `선택 사용자 ${selectedOwners.length}건 연결 해제 완료: usage ${updatedUsageDocs}건, tracker ${updatedTrackerDocs}건`,
+            );
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `일괄 연결 해제 실패: ${error.message}`
+                    : "일괄 연결 해제 실패",
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
+    async function saveBanner() {
+        setBusyKey("banner-save");
+        setActionMessage("");
+
+        try {
+            await adminRequest<{ ok: true }>("/api/site-banner", {
+                method: "PATCH",
+                body: JSON.stringify(bannerSettings),
+            });
+            setActionMessage("사이트 공지 배너를 저장했습니다.");
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error
+                    ? `배너 저장 실패: ${error.message}`
+                    : "배너 저장 실패",
+            );
+        } finally {
+            setBusyKey("");
+        }
+    }
+
     if (!hasFirebaseConfig()) {
         return (
             <main className="page auth-shell">
@@ -1059,6 +1219,50 @@ export default function AdminPage() {
                             <button
                                 className="button secondary"
                                 type="button"
+                                onClick={() =>
+                                    setSelectedOwnerIds(
+                                        visibleTrackedOwners.map(
+                                            (item) => item.ownerId,
+                                        ),
+                                    )
+                                }
+                            >
+                                <CheckSquare size={16} />
+                                전체 선택
+                            </button>
+                            <button
+                                className="button secondary"
+                                type="button"
+                                onClick={() => setSelectedOwnerIds([])}
+                            >
+                                <Square size={16} />
+                                선택 해제
+                            </button>
+                            <button
+                                className="button secondary"
+                                type="button"
+                                disabled={busyKey === "owners-bulk-unlink"}
+                                onClick={bulkUnlinkSelectedOwners}
+                            >
+                                <Shield size={16} />
+                                {busyKey === "owners-bulk-unlink"
+                                    ? "해제 중..."
+                                    : "선택 연결 해제"}
+                            </button>
+                            <button
+                                className="button secondary"
+                                type="button"
+                                disabled={busyKey === "owners-bulk-delete"}
+                                onClick={bulkDeleteSelectedOwners}
+                            >
+                                <Trash2 size={16} />
+                                {busyKey === "owners-bulk-delete"
+                                    ? "삭제 중..."
+                                    : "선택 삭제"}
+                            </button>
+                            <button
+                                className="button secondary"
+                                type="button"
                                 disabled={busyKey === "owner-cleanup-test"}
                                 onClick={cleanupTestTrackedOwners}
                             >
@@ -1076,6 +1280,19 @@ export default function AdminPage() {
                                     className={styles.accountItem}
                                     key={owner.id}
                                 >
+                                    <button
+                                        className={styles.selectionToggle}
+                                        type="button"
+                                        onClick={() =>
+                                            toggleOwnerSelection(owner.ownerId)
+                                        }
+                                    >
+                                        {selectedOwnerIds.includes(owner.ownerId) ? (
+                                            <CheckSquare size={18} />
+                                        ) : (
+                                            <Square size={18} />
+                                        )}
+                                    </button>
                                     <div className={styles.accountMeta}>
                                         <div>
                                             <strong>
@@ -1327,6 +1544,76 @@ export default function AdminPage() {
                                 조건에 맞는 Firebase Auth 유저가 없습니다.
                             </div>
                         )}
+                    </div>
+                </article>
+
+                <article className={`feature-card ${styles.panel}`}>
+                    <h2>
+                        <Megaphone size={18} /> 사이트 공지
+                    </h2>
+                    <div className={styles.panelToolbar}>
+                        <label>
+                            <span className="eyebrow">공지 메시지</span>
+                            <input
+                                className={`input ${styles.toolbarInput}`}
+                                type="text"
+                                value={bannerSettings.message}
+                                onChange={(event) =>
+                                    setBannerSettings((current) => ({
+                                        ...current,
+                                        message: event.target.value,
+                                    }))
+                                }
+                                placeholder="예: 오늘 19:00-19:30 tracker 점검 예정"
+                            />
+                        </label>
+                        <div className={styles.toolbarFilters}>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={bannerSettings.tone}
+                                onChange={(event) =>
+                                    setBannerSettings((current) => ({
+                                        ...current,
+                                        tone: event.target.value,
+                                    }))
+                                }
+                            >
+                                <option value="neutral">기본</option>
+                                <option value="warning">주의</option>
+                                <option value="maintenance">점검</option>
+                            </select>
+                            <select
+                                className={styles.toolbarSelect}
+                                value={bannerSettings.active ? "on" : "off"}
+                                onChange={(event) =>
+                                    setBannerSettings((current) => ({
+                                        ...current,
+                                        active: event.target.value === "on",
+                                    }))
+                                }
+                            >
+                                <option value="off">배너 숨김</option>
+                                <option value="on">배너 표시</option>
+                            </select>
+                        </div>
+                        <div className={styles.toolbarActions}>
+                            <button
+                                className="button secondary"
+                                type="button"
+                                disabled={busyKey === "banner-save"}
+                                onClick={saveBanner}
+                            >
+                                <Megaphone size={16} />
+                                {busyKey === "banner-save"
+                                    ? "저장 중..."
+                                    : "배너 저장"}
+                            </button>
+                        </div>
+                    </div>
+                    <div className={styles.noticePreview}>
+                        {bannerSettings.active && bannerSettings.message
+                            ? bannerSettings.message
+                            : "현재 표시 중인 공지 배너가 없습니다."}
                     </div>
                 </article>
 

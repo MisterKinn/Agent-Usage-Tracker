@@ -120,6 +120,7 @@ def read_args() -> argparse.Namespace:
     parser.add_argument("--seed-fake-claude", action="store_true")
     parser.add_argument("--seed-count", type=int, default=3)
     parser.add_argument("--report", action="store_true")
+    parser.add_argument("--doctor", action="store_true")
     parser.add_argument("--report-days", type=int, default=7)
     parser.add_argument("--codex-db", default=str(Path.home() / ".codex" / "logs_2.sqlite"))
     parser.add_argument(
@@ -637,6 +638,55 @@ def fetch_tracker_version() -> dict[str, Any]:
     return request_json(TRACKER_VERSION_URL, "GET", {}, token="")
 
 
+def doctor(args: argparse.Namespace) -> int:
+    state = read_json(STATE_PATH, {"uploadedEventIds": []})
+    codex_db = Path(args.codex_db)
+    codex_index = Path(args.codex_session_index)
+    claude_dir = Path(args.claude_projects_dir)
+    last_uploaded_at = str(state.get("lastUploadedAt") or "-")
+    line = paint("=" * 60, "dim")
+
+    print(line)
+    print(paint("Tracker Doctor", "bold", "cyan"))
+    print(f"{paint('owner', 'dim'):<16}{args.name}")
+    print(f"{paint('ownerId', 'dim'):<16}{args.owner_id}")
+    print(f"{paint('config', 'dim'):<16}{CONFIG_PATH}")
+    print(f"{paint('state', 'dim'):<16}{STATE_PATH}")
+    print(f"{paint('codex db', 'dim'):<16}{'ok' if codex_db.exists() else 'missing'} · {codex_db}")
+    print(f"{paint('codex index', 'dim'):<16}{'ok' if codex_index.exists() else 'missing'} · {codex_index}")
+    print(f"{paint('claude dir', 'dim'):<16}{'ok' if claude_dir.exists() else 'missing'} · {claude_dir}")
+    print(f"{paint('upload url', 'dim'):<16}{TRACKER_UPLOAD_URL}")
+    print(f"{paint('write token', 'dim'):<16}{'configured' if TRACKER_WRITE_TOKEN else 'missing'}")
+    print(f"{paint('last upload', 'dim'):<16}{last_uploaded_at}")
+    try:
+        version_payload = fetch_tracker_version()
+        latest_version = str(version_payload.get("trackerVersion") or TRACKER_VERSION)
+        version_state = compare_versions(TRACKER_VERSION, latest_version)
+        print(
+            f"{paint('version', 'dim'):<16}"
+            f"{TRACKER_VERSION} ({'update available' if version_state < 0 else 'up to date'})"
+        )
+        if version_state < 0:
+            print(f"{paint('update cmd', 'dim'):<16}{recommended_update_command()}")
+    except Exception as error:
+        print(f"{paint('version', 'dim'):<16}check failed · {error}")
+    print(line)
+
+    issues = []
+    if not TRACKER_WRITE_TOKEN:
+        issues.append("TRACKER_WRITE_TOKEN missing")
+    if not codex_db.exists() and not claude_dir.exists():
+        issues.append("No Codex or Claude log source found")
+
+    if issues:
+        for issue in issues:
+            emit(issue, "warn")
+        return 1
+
+    emit("Doctor check passed.", "ok")
+    return 0
+
+
 def print_usage_report(args: argparse.Namespace) -> None:
     version_payload = fetch_tracker_version()
     latest_version = str(version_payload.get("trackerVersion") or TRACKER_VERSION)
@@ -778,6 +828,7 @@ def sync_once(args: argparse.Namespace, state: dict[str, Any]) -> None:
         "workspacePath": str(RUN_CONTEXT),
         "trackerPath": str(ROOT),
         "trackerSource": "local-agent-log-python",
+        "trackerVersion": TRACKER_VERSION,
         "summaries": [],
     }
 
@@ -832,6 +883,9 @@ def main() -> int:
     if args.report:
         print_usage_report(args)
         return 0
+
+    if args.doctor:
+        return doctor(args)
 
     if args.dry_run:
         sync_once(args, state)

@@ -22,12 +22,16 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Activity,
+    CheckCircle2,
     Copy,
     Link2,
     LogOut,
     Mail,
+    RefreshCw,
     TerminalSquare,
+    TriangleAlert,
     UserRound,
+    Wrench,
 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import {
@@ -125,6 +129,12 @@ export default function AccountPage() {
     const [linkBusy, setLinkBusy] = useState(false);
     const [linkMessage, setLinkMessage] = useState("");
     const [linkError, setLinkError] = useState("");
+    const [trackerStatus, setTrackerStatus] = useState<{
+        lastSeenAt: string | null;
+        latestVersion: string;
+        trackerVersion: string;
+        updateNeeded: boolean;
+    } | null>(null);
 
     useEffect(() => {
         if (!auth) {
@@ -202,10 +212,17 @@ export default function AccountPage() {
             const payload = (await response.json()) as {
                 linkedOwnerId?: string;
                 linkedOwnerName?: string;
+                trackerStatus?: {
+                    lastSeenAt: string | null;
+                    latestVersion: string;
+                    trackerVersion: string;
+                    updateNeeded: boolean;
+                } | null;
             };
             setLinkedOwnerId(payload.linkedOwnerId ?? "");
             setLinkedOwnerName(payload.linkedOwnerName ?? "");
             setLinkOwnerId(payload.linkedOwnerId ?? "");
+            setTrackerStatus(payload.trackerStatus ?? null);
         }
 
         void loadLinkState();
@@ -342,6 +359,7 @@ export default function AccountPage() {
             setLinkedOwnerId(payload.linkedOwnerId ?? "");
             setLinkedOwnerName(payload.linkedOwnerName ?? "");
             setLinkOwnerId(payload.linkedOwnerId ?? "");
+            setTrackerStatus(null);
             setLinkMessage(
                 `tracker 연결 완료: ${payload.linkedOwnerName ?? payload.linkedOwnerId} · usage ${payload.updatedUsageDocs ?? 0}건 반영`,
             );
@@ -379,6 +397,7 @@ export default function AccountPage() {
             setLinkedOwnerId("");
             setLinkedOwnerName("");
             setLinkOwnerId("");
+            setTrackerStatus(null);
             setLinkMessage(
                 `tracker 연결 해제 완료 · usage ${payload.updatedUsageDocs ?? 0}건 정리`,
             );
@@ -527,6 +546,32 @@ export default function AccountPage() {
                                     확인한 뒤 붙여 넣으세요.
                                 </div>
                             )}
+                            {trackerStatus ? (
+                                <div className="page-actions">
+                                    <span className="live">
+                                        {trackerStatus.lastSeenAt ? (
+                                            <RefreshCw size={14} />
+                                        ) : (
+                                            <TriangleAlert size={14} />
+                                        )}
+                                        {trackerStatus.lastSeenAt
+                                            ? new Date(
+                                                  trackerStatus.lastSeenAt,
+                                              ).toLocaleString("ko-KR")
+                                            : "업로드 기록 없음"}
+                                    </span>
+                                    <span className="live">
+                                        {trackerStatus.updateNeeded ? (
+                                            <Wrench size={14} />
+                                        ) : (
+                                            <CheckCircle2 size={14} />
+                                        )}
+                                        {trackerStatus.trackerVersion
+                                            ? `${trackerStatus.trackerVersion} / ${trackerStatus.latestVersion}`
+                                            : "버전 미보고"}
+                                    </span>
+                                </div>
+                            ) : null}
                             {linkError ? (
                                 <div className="error">{linkError}</div>
                             ) : null}

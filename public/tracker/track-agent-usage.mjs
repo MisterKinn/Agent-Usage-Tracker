@@ -41,6 +41,7 @@ function readArgs(argv) {
     once: false,
     dryRun: false,
     report: false,
+    doctor: false,
     reportDays: 7,
     sinceDays: 7,
     maxEvents: 200,
@@ -71,6 +72,9 @@ function readArgs(argv) {
       args.once = true;
     } else if (arg === "--report") {
       args.report = true;
+      args.once = true;
+    } else if (arg === "--doctor") {
+      args.doctor = true;
       args.once = true;
     } else if (arg === "--report-days") {
       args.reportDays = Number(argv[index + 1] ?? args.reportDays);
@@ -595,6 +599,54 @@ function recommendedUpdateCommand() {
   return `/usr/bin/curl -fsSL 'https://agent-usage-tracker.vercel.app/api/install/python' | python3`;
 }
 
+async function runDoctor(args) {
+  const state = readState();
+  const codexDbExists = existsSync(args.codexDbPath);
+  const codexIndexExists = existsSync(args.codexSessionIndexPath);
+  const claudeDirExists = existsSync(args.claudeProjectsDir);
+  console.log("============================================================");
+  console.log("Tracker Doctor");
+  console.log(`owner           ${args.name}`);
+  console.log(`ownerId         ${args.ownerId}`);
+  console.log(`config          ${CONFIG_PATH}`);
+  console.log(`state           ${STATE_PATH}`);
+  console.log(`codex db        ${codexDbExists ? "ok" : "missing"} · ${args.codexDbPath}`);
+  console.log(`codex index     ${codexIndexExists ? "ok" : "missing"} · ${args.codexSessionIndexPath}`);
+  console.log(`claude dir      ${claudeDirExists ? "ok" : "missing"} · ${args.claudeProjectsDir}`);
+  console.log(`upload url      ${TRACKER_UPLOAD_URL}`);
+  console.log(`write token     ${TRACKER_WRITE_TOKEN ? "configured" : "missing"}`);
+  console.log(`last upload     ${state.lastUploadedAt ?? "-"}`);
+  try {
+    const versionPayload = await fetch(TRACKER_VERSION_URL, {
+      headers: {
+        authorization: `Bearer ${TRACKER_WRITE_TOKEN}`,
+      },
+    }).then((response) => response.json());
+    const latestVersion = versionPayload.trackerVersion ?? TRACKER_VERSION;
+    const versionState = compareVersions(TRACKER_VERSION, latestVersion);
+    console.log(
+      `version         ${TRACKER_VERSION} (${versionState < 0 ? "update available" : "up to date"})`,
+    );
+    if (versionState < 0) {
+      console.log(`update cmd      ${recommendedUpdateCommand()}`);
+    }
+  } catch (error) {
+    console.log(`version         check failed · ${error instanceof Error ? error.message : String(error)}`);
+  }
+  console.log("============================================================");
+  const issues = [];
+  if (!TRACKER_WRITE_TOKEN) issues.push("TRACKER_WRITE_TOKEN missing");
+  if (!codexDbExists && !claudeDirExists) issues.push("No Codex or Claude log source found");
+  if (issues.length) {
+    for (const issue of issues) {
+      console.log(`[agent-usage-tracker] WARN ${issue}`);
+    }
+    return 1;
+  }
+  console.log("[agent-usage-tracker] Doctor check passed.");
+  return 0;
+}
+
 async function syncOnce({ args, state }) {
   const events = collectEvents(args);
   let summaries = summarizeEvents(events, args.ownerId, args.name);
@@ -651,6 +703,7 @@ async function syncOnce({ args, state }) {
       workspacePath: ROOT,
       trackerPath: ROOT,
       trackerSource: "local-agent-log-node",
+      trackerVersion: TRACKER_VERSION,
       summaries: changedSummaries.map(({ summary }) => summary),
     });
   }
@@ -684,6 +737,11 @@ async function main() {
 
   if (args.report) {
     await printUsageReport(args);
+    return;
+  }
+
+  if (args.doctor) {
+    process.exitCode = await runDoctor(args);
     return;
   }
 
