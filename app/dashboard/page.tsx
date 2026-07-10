@@ -15,20 +15,15 @@ import {
     BarChart3,
     Bot,
     CalendarRange,
-    CheckCircle2,
     Download,
     LogOut,
-    RefreshCw,
     Radio,
     Scale,
     Sparkles,
-    TriangleAlert,
-    Wrench,
     UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { auth, db, hasFirebaseConfig } from "@/lib/firebase";
-import { TRACKER_CLIENT_VERSION } from "@/lib/tracker-version";
 import {
     activeTokenCount,
     formatNumber,
@@ -99,17 +94,6 @@ function mapSummary(id: string, data: DocumentData): UsageSummary {
 type TrendMode = "absolute" | "normalized";
 type PeriodFilter = "7d" | "30d" | "all";
 type AgentFilter = "all" | "codex" | "claude";
-type TrackerClient = {
-    id: string;
-    ownerId: string;
-    ownerName: string;
-    lastSeenAt: Date | null;
-    trackerVersion: string;
-    authUid: string;
-    authEmail: string;
-    source: string;
-};
-
 function compareLabel(delta: number) {
     if (delta > 0) {
         return `+${formatNumber(delta)}`;
@@ -118,49 +102,6 @@ function compareLabel(delta: number) {
         return `-${formatNumber(Math.abs(delta))}`;
     }
     return "0";
-}
-
-function parseVersion(version: string) {
-    return (version.match(/\d+/g) ?? []).map((item) => Number(item) || 0);
-}
-
-function compareVersions(left: string, right: string) {
-    const leftParts = parseVersion(left);
-    const rightParts = parseVersion(right);
-    const size = Math.max(leftParts.length, rightParts.length);
-    while (leftParts.length < size) leftParts.push(0);
-    while (rightParts.length < size) rightParts.push(0);
-    for (let index = 0; index < size; index += 1) {
-        if (leftParts[index] > rightParts[index]) return 1;
-        if (leftParts[index] < rightParts[index]) return -1;
-    }
-    return 0;
-}
-
-function mapTrackerClient(id: string, data: DocumentData): TrackerClient {
-    return {
-        id,
-        ownerId: data.ownerId ?? id,
-        ownerName: data.ownerName ?? "unknown",
-        lastSeenAt: toDate(data.lastSeenAt ?? null),
-        trackerVersion: data.trackerVersion ?? "",
-        authUid: data.authUid ?? "",
-        authEmail: data.authEmail ?? "",
-        source: data.source ?? "local-agent-log",
-    };
-}
-
-function formatRelativeMinutes(date: Date | null) {
-    if (!date) {
-        return "업로드 기록 없음";
-    }
-    const diffMs = Date.now() - date.getTime();
-    const diffMin = Math.max(0, Math.round(diffMs / 60000));
-    if (diffMin < 1) return "방금 전";
-    if (diffMin < 60) return `${diffMin}분 전`;
-    const diffHour = Math.round(diffMin / 60);
-    if (diffHour < 24) return `${diffHour}시간 전`;
-    return `${Math.round(diffHour / 24)}일 전`;
 }
 
 function uniqueSortedDateKeys(items: UsageSummary[]) {
@@ -173,7 +114,6 @@ export default function DashboardPage() {
     const [user, setUser] = useState<User | null>(null);
     const [authReady, setAuthReady] = useState(false);
     const [summaries, setSummaries] = useState<UsageSummary[]>([]);
-    const [trackerClients, setTrackerClients] = useState<TrackerClient[]>([]);
     const [trendMode, setTrendMode] = useState<TrendMode>("absolute");
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("7d");
     const [agentFilter, setAgentFilter] = useState<AgentFilter>("all");
@@ -195,7 +135,6 @@ export default function DashboardPage() {
     useEffect(() => {
         if (!user || !db) {
             setSummaries([]);
-            setTrackerClients([]);
             return;
         }
 
@@ -205,26 +144,13 @@ export default function DashboardPage() {
             limit(2000),
         );
 
-        const trackerQuery = query(
-            collection(db, "trackerClients"),
-            orderBy("lastSeenAt", "desc"),
-            limit(500),
-        );
-
         const unsubscribeUsage = onSnapshot(usageQuery, (snapshot) => {
             setSummaries(
                 snapshot.docs.map((doc) => mapSummary(doc.id, doc.data())),
             );
         });
-        const unsubscribeTrackers = onSnapshot(trackerQuery, (snapshot) => {
-            setTrackerClients(
-                snapshot.docs.map((doc) => mapTrackerClient(doc.id, doc.data())),
-            );
-        });
-
         return () => {
             unsubscribeUsage();
-            unsubscribeTrackers();
         };
     }, [user]);
 
@@ -280,13 +206,6 @@ export default function DashboardPage() {
     );
     const totalEvents = filteredSummaries.reduce((sum, item) => sum + item.events, 0);
     const lastEventDate = toDate(filteredSummaries[0]?.lastCompletedAt ?? null);
-    const trackerClientMap = useMemo(
-        () =>
-            new Map(
-                trackerClients.map((item) => [item.ownerId || item.ownerName, item]),
-            ),
-        [trackerClients],
-    );
     const recentTableRows = filteredSummaries.slice(0, 12);
     const chartTotalTokens = Math.max(totalTokens, 1);
     const topOwner = summary[0];
@@ -552,50 +471,6 @@ export default function DashboardPage() {
             eventDelta: totalEvents - previousEvents,
         };
     }, [agentFilter, compareDays, selectedOwners, summaries, totalEvents, totalSessions]);
-    const trackerHealth = useMemo(() => {
-        const linked = trackerClients.filter((item) => item.authUid).length;
-        const stale = trackerClients.filter((item) => {
-            const lastSeenAt = item.lastSeenAt?.getTime() ?? 0;
-            return !lastSeenAt || Date.now() - lastSeenAt > 15 * 60 * 1000;
-        }).length;
-        const updatesNeeded = trackerClients.filter(
-            (item) =>
-                item.trackerVersion &&
-                compareVersions(item.trackerVersion, TRACKER_CLIENT_VERSION) < 0,
-        ).length;
-        return {
-            linked,
-            stale,
-            updatesNeeded,
-        };
-    }, [trackerClients]);
-    const selectedOwnerKey = selectedOwners[0] || topOwner?.ownerId || topOwner?.ownerName || "";
-    const selectedOwnerSummary = summary.find(
-        (item) => (item.ownerId || item.ownerName) === selectedOwnerKey,
-    );
-    const selectedOwnerTracker = trackerClientMap.get(selectedOwnerKey);
-    const selectedOwnerRows = filteredSummaries.filter(
-        (item) => (item.ownerId || item.ownerName) === selectedOwnerKey,
-    );
-    const selectedOwnerByAgent = Array.from(
-        selectedOwnerRows.reduce((map, item) => {
-            const current =
-                map.get(item.agent) ?? {
-                    agent: item.agent,
-                    activeTokens: 0,
-                    sessions: 0,
-                    events: 0,
-                };
-            current.activeTokens += activeTokenCount(item);
-            current.sessions += item.sessions;
-            current.events += item.events;
-            map.set(item.agent, current);
-            return map;
-        }, new Map<string, { agent: string; activeTokens: number; sessions: number; events: number }>())
-            .values(),
-    ).sort((a, b) => b.activeTokens - a.activeTokens);
-    const selectedOwnerRecent = selectedOwnerRows.slice(0, 5);
-
     if (!hasFirebaseConfig()) {
         return (
             <main className="page auth-shell">
@@ -707,24 +582,6 @@ export default function DashboardPage() {
                             ? lastEventDate.toLocaleDateString("ko-KR")
                             : "아직 없음"}
                     </small>
-                </article>
-            </section>
-
-            <section className="summary-grid">
-                <article className="metric">
-                    <span>linked trackers</span>
-                    <strong>{formatNumber(trackerHealth.linked)}</strong>
-                    <small>웹 계정과 연결된 tracker owner 수</small>
-                </article>
-                <article className="metric">
-                    <span>stale trackers</span>
-                    <strong>{formatNumber(trackerHealth.stale)}</strong>
-                    <small>15분 이상 업로드가 없는 tracker 수</small>
-                </article>
-                <article className="metric">
-                    <span>updates needed</span>
-                    <strong>{formatNumber(trackerHealth.updatesNeeded)}</strong>
-                    <small>최신 버전보다 오래된 tracker 수</small>
                 </article>
             </section>
 
@@ -1115,91 +972,6 @@ export default function DashboardPage() {
                     )}
                 </article>
             </section>
-
-            {selectedOwnerSummary ? (
-                <section className={styles.trendGrid}>
-                    <article className={`panel ${styles.trendPanel}`}>
-                        <div className="panel-header">
-                            <h2>
-                                <UserRound size={18} />
-                                {selectedOwnerSummary.ownerName} drill-down
-                            </h2>
-                            <div className="page-actions">
-                                <span className="live">
-                                    {selectedOwnerTracker?.lastSeenAt ? (
-                                        <RefreshCw size={14} />
-                                    ) : (
-                                        <TriangleAlert size={14} />
-                                    )}
-                                    {formatRelativeMinutes(
-                                        selectedOwnerTracker?.lastSeenAt ?? null,
-                                    )}
-                                </span>
-                                <span className="live">
-                                    {selectedOwnerTracker?.trackerVersion &&
-                                    compareVersions(
-                                        selectedOwnerTracker.trackerVersion,
-                                        TRACKER_CLIENT_VERSION,
-                                    ) < 0 ? (
-                                        <Wrench size={14} />
-                                    ) : (
-                                        <CheckCircle2 size={14} />
-                                    )}
-                                    {selectedOwnerTracker?.trackerVersion
-                                        ? `${selectedOwnerTracker.trackerVersion} / ${TRACKER_CLIENT_VERSION}`
-                                        : "버전 미보고"}
-                                </span>
-                            </div>
-                        </div>
-                        <div className={styles.detailGrid}>
-                            <div className={styles.detailMetric}>
-                                <span>active tokens</span>
-                                <strong>
-                                    {formatNumber(selectedOwnerSummary.totalTokens)}
-                                </strong>
-                            </div>
-                            <div className={styles.detailMetric}>
-                                <span>sessions</span>
-                                <strong>
-                                    {formatNumber(selectedOwnerSummary.sessions)}
-                                </strong>
-                            </div>
-                            <div className={styles.detailMetric}>
-                                <span>events</span>
-                                <strong>
-                                    {formatNumber(selectedOwnerSummary.events)}
-                                </strong>
-                            </div>
-                            <div className={styles.detailMetric}>
-                                <span>link status</span>
-                                <strong>
-                                    {selectedOwnerTracker?.authUid ? "linked" : "unlinked"}
-                                </strong>
-                            </div>
-                        </div>
-                        <div className={styles.detailGrid}>
-                            {selectedOwnerByAgent.map((item) => (
-                                <div className={styles.detailMetric} key={item.agent}>
-                                    <span>{item.agent}</span>
-                                    <strong>{formatNumber(item.activeTokens)}</strong>
-                                    <span>
-                                        {formatNumber(item.sessions)} sessions ·{" "}
-                                        {formatNumber(item.events)} events
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className={styles.detailFoot}>
-                            {selectedOwnerRecent.map((item) => (
-                                <span key={item.id}>
-                                    {item.dateKey} · {item.agent} ·{" "}
-                                    {formatNumber(activeTokenCount(item))}
-                                </span>
-                            ))}
-                        </div>
-                    </article>
-                </section>
-            ) : null}
 
             <section className="table-grid">
                 <article className="table-panel">

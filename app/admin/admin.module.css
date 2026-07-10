@@ -132,13 +132,19 @@
 
 .accountItem {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 14px;
     align-items: center;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.16);
     padding: 14px;
+}
+
+.accountItem > .button,
+.accountItem > .stackActions {
+    grid-column: 2;
+    justify-self: start;
 }
 
 .accountMeta {
@@ -214,8 +220,15 @@
 }
 
 .stackActions {
-    display: grid;
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.stackActions .button,
+.accountItem > .button {
+    min-width: max-content;
+    white-space: nowrap;
 }
 
 .pillRow,
@@ -338,6 +351,11 @@
 
     .accountItem {
         grid-template-columns: 1fr;
+    }
+
+    .accountItem > .button,
+    .accountItem > .stackActions {
+        grid-column: 1;
     }
 
     .inlineEditor {
