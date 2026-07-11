@@ -1277,7 +1277,7 @@ export default function AdminPage() {
                         {visibleTrackedOwners.length ? (
                             visibleTrackedOwners.map((owner) => (
                                 <article
-                                    className={styles.accountItem}
+                                    className={`${styles.accountItem} ${styles.trackedItem}`}
                                     key={owner.id}
                                 >
                                     <button
@@ -1477,7 +1477,7 @@ export default function AdminPage() {
                         ) : visibleAuthUsers.length ? (
                             visibleAuthUsers.map((authUser) => (
                                 <article
-                                    className={styles.accountItem}
+                                    className={`${styles.accountItem} ${styles.authItem}`}
                                     key={authUser.uid}
                                 >
                                     <div className={styles.accountMeta}>

@@ -141,10 +141,22 @@
     padding: 14px;
 }
 
+.trackedItem {
+    grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.authItem {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .accountItem > .button,
 .accountItem > .stackActions {
     grid-column: 2;
     justify-self: start;
+}
+
+.authItem > .stackActions {
+    grid-column: 1;
 }
 
 .accountMeta {
@@ -350,6 +362,11 @@
     }
 
     .accountItem {
+        grid-template-columns: 1fr;
+    }
+
+    .trackedItem,
+    .authItem {
         grid-template-columns: 1fr;
     }
 
