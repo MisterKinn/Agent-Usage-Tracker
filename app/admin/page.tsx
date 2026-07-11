@@ -1383,7 +1383,7 @@ export default function AdminPage() {
                                         </div>
                                     </div>
                                     <button
-                                        className="button secondary"
+                                        className={`button secondary ${styles.ownerDelete}`}
                                         type="button"
                                         disabled={
                                             busyKey ===

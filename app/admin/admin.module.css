@@ -149,7 +149,6 @@
     grid-template-columns: minmax(0, 1fr);
 }
 
-.accountItem > .button,
 .accountItem > .stackActions {
     grid-column: 2;
     justify-self: start;
@@ -237,10 +236,15 @@
     gap: 8px;
 }
 
-.stackActions .button,
-.accountItem > .button {
+.stackActions :global(.button),
+.ownerDelete {
     min-width: max-content;
     white-space: nowrap;
+}
+
+.ownerDelete {
+    grid-column: 2;
+    justify-self: start;
 }
 
 .pillRow,
@@ -370,8 +374,11 @@
         grid-template-columns: 1fr;
     }
 
-    .accountItem > .button,
     .accountItem > .stackActions {
+        grid-column: 1;
+    }
+
+    .ownerDelete {
         grid-column: 1;
     }
 
