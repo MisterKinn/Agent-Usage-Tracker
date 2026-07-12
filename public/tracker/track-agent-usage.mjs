@@ -26,6 +26,7 @@ const TRACKER_VERSION_URL = TRACKER_UPLOAD_URL.replace(/\/sync$/, "/version");
 const TRACKER_WRITE_TOKEN = "__AGENT_TRACKER_WRITE_TOKEN__";
 const DEFAULT_CODEX_DB = `${homedir()}/.codex/logs_2.sqlite`;
 const DEFAULT_CODEX_SESSION_INDEX = `${homedir()}/.codex/session_index.jsonl`;
+const DEFAULT_CODEX_SESSIONS_DIR = `${homedir()}/.codex/sessions`;
 const DEFAULT_CLAUDE_PROJECTS_DIR = `${homedir()}/.claude/projects`;
 const STATE_PATH = resolve(".tracker-state.json");
 const ROOT = process.cwd();
@@ -50,6 +51,7 @@ function readArgs(argv) {
     uploadIntervalMs: 10 * 60 * 1000,
     codexDbPath: DEFAULT_CODEX_DB,
     codexSessionIndexPath: DEFAULT_CODEX_SESSION_INDEX,
+    codexSessionsDir: DEFAULT_CODEX_SESSIONS_DIR,
     claudeProjectsDir: DEFAULT_CLAUDE_PROJECTS_DIR,
   };
 
@@ -99,6 +101,9 @@ function readArgs(argv) {
       index += 1;
     } else if (arg === "--codex-session-index") {
       args.codexSessionIndexPath = argv[index + 1] ?? args.codexSessionIndexPath;
+      index += 1;
+    } else if (arg === "--codex-sessions-dir") {
+      args.codexSessionsDir = argv[index + 1] ?? args.codexSessionsDir;
       index += 1;
     } else if (arg === "--claude-projects-dir") {
       args.claudeProjectsDir = argv[index + 1] ?? args.claudeProjectsDir;
@@ -383,6 +388,98 @@ function parseCodexEvents(args) {
   return events;
 }
 
+function listCodexRolloutFiles(rootPath) {
+  if (!existsSync(rootPath)) {
+    return [];
+  }
+
+  const files = [];
+  for (const entry of readdirSync(rootPath, { withFileTypes: true })) {
+    const entryPath = join(rootPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listCodexRolloutFiles(entryPath));
+    } else if (entry.name.startsWith("rollout-") && entry.name.endsWith(".jsonl")) {
+      files.push(entryPath);
+    }
+  }
+  return files.sort();
+}
+
+function parseCodexRolloutEvents(args, legacyCutoffMs) {
+  const events = [];
+  for (const filePath of listCodexRolloutFiles(args.codexSessionsDir)) {
+    const sessionMatch = filePath.match(/([0-9a-f]{8}-[0-9a-f-]{27,})\.jsonl$/);
+    if (!sessionMatch) {
+      continue;
+    }
+
+    const sessionId = sessionMatch[1];
+    let previous = {
+      input_tokens: 0,
+      cached_input_tokens: 0,
+      output_tokens: 0,
+      reasoning_output_tokens: 0,
+      total_tokens: 0,
+    };
+    const lines = readFileSync(filePath, "utf8").split(/\r?\n/);
+    lines.forEach((line, index) => {
+      if (!line.trim()) {
+        return;
+      }
+      let item;
+      try {
+        item = JSON.parse(line);
+      } catch {
+        return;
+      }
+
+      const payload = item.payload ?? {};
+      if (item.type !== "event_msg" || payload.type !== "token_count") {
+        return;
+      }
+      const cumulative = payload.info?.total_token_usage;
+      if (!cumulative) {
+        return;
+      }
+
+      const current = Object.fromEntries(
+        Object.keys(previous).map((key) => [key, Number(cumulative[key] ?? 0)]),
+      );
+      const completedAt = new Date(item.timestamp ?? 0);
+      const deltas = Object.fromEntries(
+        Object.keys(previous).map((key) => [key, Math.max(0, current[key] - previous[key])]),
+      );
+      previous = current;
+      if (
+        Number.isNaN(completedAt.getTime()) ||
+        completedAt.getTime() <= legacyCutoffMs ||
+        deltas.total_tokens <= 0
+      ) {
+        return;
+      }
+
+      events.push({
+        eventId: `codex-rollout:${sessionId}:${index}`,
+        agent: "codex",
+        ownerName: args.name,
+        ownerId: args.ownerId,
+        sessionId,
+        sessionName: sessionId,
+        responseId: `rollout:${sessionId}:${index}`,
+        inputTokens: deltas.input_tokens,
+        cachedTokens: deltas.cached_input_tokens,
+        outputTokens: deltas.output_tokens,
+        reasoningTokens: deltas.reasoning_output_tokens,
+        totalTokens: deltas.total_tokens,
+        model: "",
+        completedAt: completedAt.toISOString(),
+        source: "codex-rollout-jsonl",
+      });
+    });
+  }
+  return events;
+}
+
 function listClaudeJsonlFiles(projectsDir) {
   if (!existsSync(projectsDir)) {
     return [];
@@ -464,7 +561,13 @@ function parseClaudeEvents(args) {
 function collectEvents(args) {
   const events = [];
   if (args.agent === "all" || args.agent === "codex") {
-    events.push(...parseCodexEvents(args));
+    const legacyEvents = parseCodexEvents(args);
+    events.push(...legacyEvents);
+    const legacyCutoffMs = legacyEvents.reduce(
+      (latest, event) => Math.max(latest, new Date(event.completedAt).getTime()),
+      0,
+    );
+    events.push(...parseCodexRolloutEvents(args, legacyCutoffMs));
   }
   if (args.agent === "all" || args.agent === "claude") {
     events.push(...parseClaudeEvents(args));

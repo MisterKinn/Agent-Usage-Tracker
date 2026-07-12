@@ -25,6 +25,7 @@ from typing import Any
 
 
 THREAD_RE = re.compile(r"thread(?:\.id|_id)=([0-9a-f-]{36})")
+ROLLOUT_ID_RE = re.compile(r"([0-9a-f]{8}-[0-9a-f-]{27,})\.jsonl$")
 ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 RUN_CONTEXT = Path.cwd()
 ROOT = Path(__file__).resolve().parent
@@ -126,6 +127,10 @@ def read_args() -> argparse.Namespace:
     parser.add_argument(
         "--codex-session-index",
         default=str(Path.home() / ".codex" / "session_index.jsonl"),
+    )
+    parser.add_argument(
+        "--codex-sessions-dir",
+        default=str(Path.home() / ".codex" / "sessions"),
     )
     parser.add_argument("--claude-projects-dir", default=str(Path.home() / ".claude" / "projects"))
     args = parser.parse_args()
@@ -345,6 +350,90 @@ def parse_codex_events(args: argparse.Namespace) -> list[dict[str, Any]]:
     return events
 
 
+def list_codex_rollout_files(path: str) -> list[Path]:
+    root = Path(path)
+    if not root.exists():
+        return []
+    return sorted(root.rglob("rollout-*.jsonl"))
+
+
+def parse_codex_rollout_events(
+    args: argparse.Namespace,
+    legacy_cutoff: float,
+) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for rollout_path in list_codex_rollout_files(args.codex_sessions_dir):
+        match = ROLLOUT_ID_RE.search(rollout_path.name)
+        if not match:
+            continue
+
+        session_id = match.group(1)
+        previous: dict[str, int] = {
+            "input_tokens": 0,
+            "cached_input_tokens": 0,
+            "output_tokens": 0,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 0,
+        }
+        for index, line in enumerate(
+            rollout_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        ):
+            if not line.strip():
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            payload = item.get("payload") or {}
+            if item.get("type") != "event_msg" or payload.get("type") != "token_count":
+                continue
+
+            info = payload.get("info") or {}
+            cumulative = info.get("total_token_usage") or {}
+            if not cumulative:
+                continue
+
+            current = {
+                key: int(cumulative.get(key) or 0)
+                for key in previous
+            }
+            timestamp = str(item.get("timestamp") or "")
+            try:
+                event_ts = parse_iso_to_seconds(timestamp)
+            except (TypeError, ValueError):
+                continue
+
+            deltas = {
+                key: max(0, current[key] - previous[key])
+                for key in previous
+            }
+            previous = current
+            if event_ts <= legacy_cutoff or deltas["total_tokens"] <= 0:
+                continue
+
+            events.append(
+                {
+                    "eventId": f"codex-rollout:{session_id}:{index}",
+                    "agent": "codex",
+                    "ownerName": args.name,
+                    "ownerId": args.owner_id,
+                    "sessionId": session_id,
+                    "sessionName": session_id,
+                    "responseId": f"rollout:{session_id}:{index}",
+                    "inputTokens": deltas["input_tokens"],
+                    "cachedTokens": deltas["cached_input_tokens"],
+                    "outputTokens": deltas["output_tokens"],
+                    "reasoningTokens": deltas["reasoning_output_tokens"],
+                    "totalTokens": deltas["total_tokens"],
+                    "model": "",
+                    "completedAt": timestamp,
+                    "source": "codex-rollout-jsonl",
+                }
+            )
+    return events
+
+
 def parse_claude_timestamp(value: Any) -> str:
     if isinstance(value, str) and value:
         try:
@@ -451,7 +540,13 @@ def parse_iso_to_seconds(value: str) -> float:
 def collect_events(args: argparse.Namespace) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     if args.agent in ("all", "codex"):
-        events.extend(parse_codex_events(args))
+        legacy_events = parse_codex_events(args)
+        events.extend(legacy_events)
+        legacy_cutoff = max(
+            (parse_iso_to_seconds(event["completedAt"]) for event in legacy_events),
+            default=0,
+        )
+        events.extend(parse_codex_rollout_events(args, legacy_cutoff))
     if args.agent in ("all", "claude"):
         events.extend(parse_claude_events(args))
     cutoff = 0 if args.all_history else time.time() - args.since_days * 24 * 60 * 60
