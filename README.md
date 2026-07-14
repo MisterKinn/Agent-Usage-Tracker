@@ -112,6 +112,26 @@ cd $HOME\.agent-usage-tracker
 py -3 track_agent_usage.py --doctor
 ```
 
+실제 Codex 로그나 Firebase를 건드리지 않고 트래커의 핵심 결론을 검증하려면
+격리형 하네스를 실행하세요. 가짜 SQLite/rollout 로그를 임시 폴더에 만들고,
+구형 로그 감지, 최신 Codex rollout 감지, 누적 토큰 차분, 중복 방지, 일자 집계를
+PASS/FAIL로 확인합니다.
+
+```powershell
+cd $HOME\path\to\agent-usage-tracker
+py -3 scripts\tracker-harness.py
+```
+
+macOS / Linux에서는 다음처럼 실행합니다.
+
+```bash
+python3 scripts/tracker-harness.py
+```
+
+`Tracker harness passed`가 출력되고 모든 항목이 `PASS`이면 로컬 파서 결론은
+통과입니다. 이 하네스는 실제 사용자 로그와 Firebase 업로드를 검증하지 않으므로,
+배포 전에는 별도로 `--doctor`와 `--dry-run`도 확인해야 합니다.
+
 리포트에는 `ownerId`도 함께 표시됩니다. 웹 계정 페이지에서 이 ownerId를 연결하면, 로그인 계정과 로컬 트래커 사용량이 정확히 매칭됩니다.
 
 리포트에 `update available`이 보이면 아래 설치 명령을 한 번 더 실행하면 최신 버전으로 업데이트됩니다.
